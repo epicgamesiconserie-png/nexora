@@ -18,7 +18,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (username.length < 3) {
+    if (username.length < 1) {
       setStatus("idle");
       setMsg("");
       return;

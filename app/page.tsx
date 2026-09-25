@@ -13,6 +13,16 @@ export default function Home() {
   const [wordIndex, setWordIndex] = useState(0);
   const [wordVisible, setWordVisible] = useState(true);
 
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Check if the user is logged in
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((j) => setLoggedIn(!!j.success))
+      .catch(() => setLoggedIn(false));
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setWordVisible(false);
@@ -130,13 +140,6 @@ export default function Home() {
             strokeWidth="0.4"
             filter="url(#glowLine)"
           />
-          <path
-            d="M 800 -50 C 1000 150, 1200 250, 1500 200"
-            fill="none"
-            stroke="url(#purpleFade2)"
-            strokeWidth="0.25"
-            filter="url(#glowLine2)"
-          />
         </svg>
       </div>
 
@@ -178,18 +181,29 @@ export default function Home() {
             </nav>
 
             <div className="flex items-center justify-end gap-2">
-              <Link
-                href="/login"
-                className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/register"
-                className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm font-medium bg-white text-black hover:bg-zinc-200 transition"
-              >
-                Sign up
-              </Link>
+              {loggedIn ? (
+                <Link
+                  href="/dashboard"
+                  className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm font-medium bg-white text-black hover:bg-zinc-200 transition"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm font-medium bg-white text-black hover:bg-zinc-200 transition"
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -392,9 +406,7 @@ export default function Home() {
           Get your link in just a few simple steps.
         </p>
 
-        {/* Steps + arrows */}
         <div className="relative flex flex-col md:flex-row items-center md:items-stretch justify-center md:justify-between gap-12 md:gap-4">
-          {/* Step 1 */}
           <div className="relative flex flex-col items-center text-center w-full md:w-1/3">
             <div
               className="w-16 h-16 rounded-full grid place-items-center mb-6"
@@ -414,7 +426,6 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Arrow between 1 and 2 (desktop only) */}
           <div className="hidden md:flex items-center justify-center self-start pt-8 shrink-0">
             <svg
               width="28"
@@ -436,7 +447,6 @@ export default function Home() {
             </svg>
           </div>
 
-          {/* Step 2 */}
           <div className="relative flex flex-col items-center text-center w-full md:w-1/3">
             <div
               className="w-16 h-16 rounded-full grid place-items-center mb-6"
@@ -456,7 +466,6 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Arrow between 2 and 3 (desktop only) */}
           <div className="hidden md:flex items-center justify-center self-start pt-8 shrink-0">
             <svg
               width="28"
@@ -478,7 +487,6 @@ export default function Home() {
             </svg>
           </div>
 
-          {/* Step 3 */}
           <div className="relative flex flex-col items-center text-center w-full md:w-1/3">
             <div
               className="w-16 h-16 rounded-full grid place-items-center mb-6"
@@ -505,18 +513,8 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-8 hover:border-white/25 hover:bg-white/[0.05] transition">
             <div className="w-12 h-12 rounded-full grid place-items-center mb-6 border border-white/15 bg-white/[0.03]">
-              <svg
-                className="w-5 h-5 text-zinc-200"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
+              <svg className="w-5 h-5 text-zinc-200" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">Safe &amp; Secure</h3>
@@ -527,18 +525,8 @@ export default function Home() {
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-8 hover:border-white/25 hover:bg-white/[0.05] transition">
             <div className="w-12 h-12 rounded-full grid place-items-center mb-6 border border-white/15 bg-white/[0.03]">
-              <svg
-                className="w-5 h-5 text-zinc-200"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
+              <svg className="w-5 h-5 text-zinc-200" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">Lightning Fast</h3>
@@ -549,18 +537,8 @@ export default function Home() {
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-8 hover:border-white/25 hover:bg-white/[0.05] transition">
             <div className="w-12 h-12 rounded-full grid place-items-center mb-6 border border-white/15 bg-white/[0.03]">
-              <svg
-                className="w-5 h-5 text-zinc-200"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
-                />
+              <svg className="w-5 h-5 text-zinc-200" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">Custom Links</h3>

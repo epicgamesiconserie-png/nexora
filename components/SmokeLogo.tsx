@@ -78,17 +78,21 @@ export function SmokeLogo({ className = "h-8 w-8" }: { className?: string }) {
   );
 }
 
+/* === Wordmark — grenade + BIGGER "smokez.lol" text === */
 export function SmokeLogoWordmark({ className = "" }: { className?: string }) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <SmokeLogo className="h-10 w-10 md:h-12 md:w-12" />
+      {/* Grenade icon — bigger too */}
+      <SmokeLogo className="h-11 w-11 md:h-14 md:w-14" />
+
+      {/* Text — bigger */}
       <span
         className="inline-flex items-baseline text-white"
         style={{
           fontFamily:
             "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
           fontWeight: 500,
-          fontSize: "1.5rem",
+          fontSize: "1.875rem",
           letterSpacing: "-0.055em",
           lineHeight: 1,
           textShadow: "0 0 12px rgba(255,255,255,0.15)",
@@ -98,7 +102,7 @@ export function SmokeLogoWordmark({ className = "" }: { className?: string }) {
         <span
           className="inline-block text-zinc-500"
           style={{
-            fontSize: "2.25rem",
+            fontSize: "2.75rem",
             lineHeight: 1,
             marginLeft: "1px",
             marginRight: "1px",

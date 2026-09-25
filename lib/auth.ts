@@ -46,7 +46,7 @@ export async function destroySession() {
 }
 
 export function validateUsername(u: string): string | null {
-  if (u.length < 3 || u.length > 20) return "3–20 characters";
+  if (u.length < 1 || u.length > 20) return "1–20 characters";
   if (!/^[a-zA-Z0-9_-]+$/.test(u)) return "Only letters, numbers, _ and -";
   return null;
 }

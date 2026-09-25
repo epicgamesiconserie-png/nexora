@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { SmokeLogoWordmark } from "@/components/SmokeLogo";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -26,14 +25,21 @@ export default function RegisterPage() {
     setStatus("checking");
     const t = setTimeout(async () => {
       try {
-        const r = await fetch(`/api/check-username?u=${encodeURIComponent(username)}`);
+        const r = await fetch(
+          `/api/check-username?u=${encodeURIComponent(username)}`
+        );
         const j = await r.json();
-        if (j.available) {
+
+        // Accept both response shapes: { data: {...} } OR {...}
+        const payload = j?.data ?? j;
+        const isAvail = payload?.available === true;
+
+        if (isAvail) {
           setStatus("available");
           setMsg("Username available");
         } else {
           setStatus("taken");
-          setMsg(j.reason || "Taken");
+          setMsg(payload?.reason || "That username is already taken.");
         }
       } catch {
         setStatus("idle");
@@ -114,8 +120,12 @@ export default function RegisterPage() {
       </div>
 
       <div className="absolute top-6 left-6 z-20">
-        <Link href="/">
-          <SmokeLogoWordmark />
+        <Link href="/" className="flex items-center gap-2">
+          <span className="font-semibold tracking-tight text-white text-2xl">
+            smokez
+            <span className="text-zinc-500">.</span>
+            lol
+          </span>
         </Link>
       </div>
 
@@ -132,7 +142,9 @@ export default function RegisterPage() {
           }}
         >
           <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold tracking-tight">Claim Your Name</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Claim Your Name
+            </h1>
             <p className="text-sm text-zinc-400 mt-2">
               Pick a unique username. It&apos;s yours forever.
             </p>
@@ -157,13 +169,17 @@ export default function RegisterPage() {
                   autoComplete="off"
                   className="h-11 w-full bg-transparent text-sm outline-none placeholder:text-white/35"
                 />
-                {username.length >= 3 && status !== "idle" && (
+                {username.length >= 1 && status !== "idle" && (
                   <span className="text-xs">
-                    {status === "checking" && <span className="text-white/40">…</span>}
+                    {status === "checking" && (
+                      <span className="text-white/40">…</span>
+                    )}
                     {status === "available" && (
                       <span className="text-emerald-400">✓</span>
                     )}
-                    {status === "taken" && <span className="text-red-400">✕</span>}
+                    {status === "taken" && (
+                      <span className="text-red-400">✕</span>
+                    )}
                   </span>
                 )}
               </div>
@@ -176,9 +192,9 @@ export default function RegisterPage() {
                     : "text-white/40"
                 }`}
               >
-                {username.length >= 3 && msg
+                {username.length >= 1 && msg
                   ? (status === "available" ? "✓ " : "✕ ") + msg
-                  : "3–20 characters · letters, numbers, _ and -"}
+                  : "1–20 characters · letters, numbers, _ and -"}
               </p>
             </div>
 

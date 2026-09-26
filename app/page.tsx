@@ -16,7 +16,6 @@ export default function Home() {
   const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Check if the user is logged in
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((j) => setLoggedIn(!!j.success))
@@ -156,14 +155,16 @@ export default function Home() {
               "0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
           }}
         >
-          <div className="grid grid-cols-3 items-center">
-            <div className="flex justify-start">
+          <div className="relative flex items-center justify-between gap-3">
+            {/* Logo — left */}
+            <div className="flex-shrink-0">
               <Link href="/">
                 <SmokeLogoWordmark />
               </Link>
             </div>
 
-            <nav className="hidden md:flex items-center justify-center gap-8 text-base font-semibold text-white">
+            {/* Center links — absolutely centered */}
+            <nav className="hidden md:flex items-center justify-center gap-8 text-base font-semibold text-white absolute left-1/2 -translate-x-1/2">
               <Link href="/pricing" className="hover:text-zinc-300 transition">
                 Pricing
               </Link>
@@ -180,27 +181,28 @@ export default function Home() {
               </a>
             </nav>
 
-            <div className="flex items-center justify-end gap-2">
+            {/* Buttons — right */}
+            <div className="flex items-center justify-end gap-2 sm:gap-3 ml-auto">
               {loggedIn ? (
                 <Link
                   href="/dashboard"
-                  className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm font-medium bg-white text-black hover:bg-zinc-200 transition"
+                  className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm font-medium bg-white text-black hover:bg-zinc-200 transition whitespace-nowrap"
                 >
                   Dashboard
                 </Link>
               ) : (
                 <>
                   <Link
-                    href="/login"
-                    className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition"
-                  >
-                    Log in
-                  </Link>
-                  <Link
                     href="/register"
-                    className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm font-medium bg-white text-black hover:bg-zinc-200 transition"
+                    className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm font-medium bg-white text-black hover:bg-zinc-200 transition whitespace-nowrap"
                   >
                     Sign up
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition whitespace-nowrap"
+                  >
+                    Log in
                   </Link>
                 </>
               )}

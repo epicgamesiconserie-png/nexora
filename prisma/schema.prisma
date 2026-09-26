@@ -15,9 +15,112 @@ model User {
   passwordHash String   @map("password_hash")
   createdAt    DateTime @default(now()) @map("created_at")
 
+  profile        Profile?
+  links          Link[]
+  socials        Social[]
+  sessions       Session[]
   passwordResets PasswordReset[]
+  music          Music?
 
   @@map("users")
+}
+
+model Profile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique @map("user_id")
+  displayName        String?  @map("display_name")
+  bio                String?  @db.Text
+  avatarUrl          String?  @map("avatar_url")
+  backgroundUrl      String?  @map("background_url")
+  backgroundType     String   @default("gradient") @map("background_type")
+  backgroundColor    String   @default("#0a0a0a") @map("background_color")
+  backgroundGradient String   @default("linear-gradient(160deg,#0a0a0a,#14141a)") @map("background_gradient")
+  accentColor        String   @default("#a855f7") @map("accent_color")
+  textColor          String   @default("#ffffff") @map("text_color")
+  font               String   @default("Inter") @map("font")
+  buttonStyle        String   @default("solid") @map("button_style")
+  borderRadius       Int      @default(16) @map("border_radius")
+  blur               Int      @default(12) @map("blur")
+  effect             String   @default("none") @map("effect")
+  showViewCount      Boolean  @default(true) @map("show_view_count")
+  views              Int      @default(0)
+  badges             String[] @default([])
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Link {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String
+  url       String
+  icon      String?
+  enabled   Boolean  @default(true)
+  position  Int      @default(0)
+  clicks    Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, position])
+  @@map("links")
+}
+
+model Social {
+  id       String @id @default(cuid())
+  userId   String @map("user_id")
+  platform String
+  url      String
+  position Int    @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("socials")
+}
+
+model Music {
+  id         String  @id @default(cuid())
+  userId     String  @unique @map("user_id")
+  url        String?
+  title      String?
+  artist     String?
+  autoplay   Boolean @default(false)
+  volume     Int     @default(60)
+  loop       Boolean @default(true)
+  showPlayer Boolean @default(true) @map("show_player")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("music")
+}
+
+model Analytics {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  type      String
+  linkId    String?  @map("link_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("analytics")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
 }
 
 model PasswordReset {

@@ -172,7 +172,7 @@ export default function Home() {
                 Leaderboard
               </Link>
               <a
-                href="https://discord.gg/your-invite-code"
+                href="https://discord.gg/yRtBJEW3d"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-zinc-300 transition"

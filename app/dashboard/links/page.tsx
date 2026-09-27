@@ -14,21 +14,10 @@ import {
   SiOnlyfans, SiKick, SiLitecoin, SiSolana, SiApplemusic,
 } from "react-icons/si";
 import {
-  LayoutDashboard, Link2, Palette, Share2, Music, BarChart3,
-  LogOut, Crown, Image as ImageIcon, Home, X, Trash2, Pencil, Eye, GripVertical,
+  LayoutDashboard, Link2, Palette, Music, BarChart3,
+  LogOut, Crown, Home, Award, X, Trash2, Pencil, Eye, GripVertical,
+  ExternalLink,
 } from "lucide-react";
-
-const sidebarLinks = [
-  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-  { name: "Customize", href: "/dashboard/customize", icon: Palette },
-  { name: "Links", href: "/dashboard/links", icon: Link2 },
-  { name: "Socials", href: "/dashboard/socials", icon: Share2 },
-  { name: "Music", href: "/dashboard/music", icon: Music },
-  { name: "My Page", href: "/dashboard/mypage", icon: Home },
-  { name: "Premium", href: "/dashboard/premium", icon: Crown },
-  { name: "Image Host", href: "/dashboard/image-host", icon: ImageIcon },
-];
 
 type Platform = {
   key: string;
@@ -68,6 +57,7 @@ type Social = { id: string; platform: string; url: string; position: number };
 
 export default function LinksPage() {
   const pathname = usePathname();
+  const [username, setUsername] = useState("");
   const [socials, setSocials] = useState<Social[]>([]);
   const [openPlatform, setOpenPlatform] = useState<Platform | null>(null);
   const [editingSocial, setEditingSocial] = useState<Social | null>(null);
@@ -79,7 +69,25 @@ export default function LinksPage() {
       .then((r) => r.json())
       .then((data) => setSocials(data.socials || []))
       .catch(() => toast.error("Failed to load socials"));
+
+    fetch("/api/user/profile")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.username) setUsername(data.username);
+      })
+      .catch(() => {});
   }, []);
+
+  const sidebarLinks = [
+    { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+    { name: "Customize", href: "/dashboard/customize", icon: Palette },
+    { name: "Links", href: "/dashboard/links", icon: Link2 },
+    { name: "Music", href: "/dashboard/music", icon: Music },
+    { name: "My Page", href: username ? `/u/${username}` : "#", icon: Home, external: true },
+    { name: "Badges", href: "/dashboard/badges", icon: Award },
+    { name: "Premium", href: "/dashboard/premium", icon: Crown },
+  ];
 
   function openAddModal(platform: Platform) {
     setOpenPlatform(platform);
@@ -153,12 +161,22 @@ export default function LinksPage() {
         <nav className="flex flex-col gap-1 flex-1">
           {sidebarLinks.map((link) => {
             const active = pathname === link.href;
+            const className = `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${
+              active
+                ? "bg-white/[0.07] text-white border border-white/15"
+                : "text-zinc-300 hover:text-white hover:bg-white/[0.05] border border-transparent"
+            }`;
+            if (link.external) {
+              return (
+                <a key={link.name} href={link.href} target="_blank" rel="noopener noreferrer" className={className}>
+                  <link.icon className="h-4 w-4" />
+                  <span className="flex-1">{link.name}</span>
+                  <ExternalLink className="h-3 w-3 opacity-50" />
+                </a>
+              );
+            }
             return (
-              <Link key={link.href} href={link.href}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${
-                  active ? "bg-white/[0.07] text-white border border-white/15"
-                         : "text-zinc-300 hover:text-white hover:bg-white/[0.05] border border-transparent"
-                }`}>
+              <Link key={link.href} href={link.href} className={className}>
                 <link.icon className="h-4 w-4" />
                 {link.name}
               </Link>

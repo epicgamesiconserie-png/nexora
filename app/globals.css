@@ -24,3 +24,105 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ============================================================
+   Animated Title Effects
+   ============================================================ */
+
+@keyframes titleWave {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+@keyframes titleGlow {
+  0%, 100% { text-shadow: 0 0 8px rgba(255,255,255,0.6), 0 0 16px rgba(255,255,255,0.3); }
+  50%      { text-shadow: 0 0 16px rgba(255,255,255,1), 0 0 32px rgba(255,255,255,0.6); }
+}
+
+@keyframes titleGradient {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes titleFlicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 8px rgba(255,255,255,0.9), 0 0 20px rgba(168,85,247,0.7);
+  }
+  20%, 24%, 55% {
+    opacity: 0.4;
+    text-shadow: none;
+  }
+}
+
+@keyframes titleFuzzy {
+  0%, 100% { filter: blur(0px); opacity: 1; }
+  50%      { filter: blur(2px); opacity: 0.7; }
+}
+
+@keyframes titleShuffle {
+  0%   { transform: translateX(0) rotate(0deg); }
+  25%  { transform: translateX(-2px) rotate(-2deg); }
+  50%  { transform: translateX(2px) rotate(2deg); }
+  75%  { transform: translateX(-1px) rotate(-1deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+
+.effect-glow {
+  animation: titleGlow 2s ease-in-out infinite;
+}
+
+.effect-gradient {
+  background: linear-gradient(90deg, #a855f7, #ec4899, #a855f7);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: titleGradient 3s ease infinite;
+}
+
+.effect-rainbow {
+  background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #00ffff, #0000ff, #8b00ff, #ff0000);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: titleGradient 2s linear infinite;
+}
+
+.effect-flicker {
+  animation: titleFlicker 3s infinite;
+}
+
+.effect-fuzzy {
+  animation: titleFuzzy 1.5s ease-in-out infinite;
+}
+
+.effect-shuffle {
+  animation: titleShuffle 0.8s ease-in-out infinite;
+  display: inline-block;
+}
+
+.effect-wave > span {
+  display: inline-block;
+  animation: titleWave 1.2s ease-in-out infinite;
+}
+
+@keyframes titleTyping {
+  0%   { width: 0; }
+  50%  { width: 100%; }
+  100% { width: 100%; }
+}
+@keyframes titleCaret {
+  50% { border-color: transparent; }
+}
+
+.effect-typewriter {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid;
+  max-width: 100%;
+  animation: titleTyping 4s steps(30) infinite, titleCaret 0.9s step-end infinite;
+}

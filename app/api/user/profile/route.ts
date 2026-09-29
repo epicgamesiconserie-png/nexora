@@ -12,9 +12,19 @@ export async function GET() {
     where: { id: session.userId },
     select: {
       username: true,
+      role: true,
+      isPremium: true,
+      premiumUntil: true,
+      createdAt: true,
       profile: {
         select: {
           bio: true,
+          font: true,
+          avatarUrl: true,
+          backgroundUrl: true,
+          backgroundVideoUrl: true,
+          audioUrl: true,
+          cursorUrl: true,
           accentColor: true,
           textColor: true,
           backgroundColor: true,
@@ -29,6 +39,9 @@ export async function GET() {
           swapBoxColors: true,
           volumeControl: true,
           badges: true,
+          unlockedBadges: true,
+          mouseTrail: true,
+          views: true,
         },
       },
     },
@@ -36,6 +49,10 @@ export async function GET() {
 
   return NextResponse.json({
     username: user?.username,
+    role: user?.role,
+    isPremium: user?.isPremium,
+    premiumUntil: user?.premiumUntil,
+    createdAt: user?.createdAt,
     profile: user?.profile,
   });
 }

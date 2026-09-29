@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Link2, Palette, Music, BarChart3,
   LogOut, Eye, Crown, ChevronRight, User, Link as LinkIcon,
   Home, Award, Upload, Type, MessageSquare, Globe, Check,
-  ExternalLink,
+  ExternalLink, ShieldCheck, Image as ImageIcon,
 } from "lucide-react";
 
 export default async function DashboardPage() {
@@ -21,6 +21,7 @@ export default async function DashboardPage() {
       username: true,
       email: true,
       createdAt: true,
+      role: true,
       profile: true,
       socials: true,
       links: true,
@@ -30,13 +31,42 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   const profile = user.profile;
+  const isAdmin = user.role === "admin";
+
+  // Count both socials AND custom links toward the "links" total
+  const totalLinks = user.socials.length + user.links.length;
 
   const tasks = [
-    { label: "Upload an Avatar", done: !!profile?.avatarUrl, href: "/dashboard/customize", Icon: Upload },
-    { label: "Add a Description", done: !!profile?.bio && profile.bio.length > 0, href: "/dashboard/customize", Icon: Type },
-    { label: "Add Socials", done: user.socials.length > 0, href: "/dashboard/links", Icon: MessageSquare },
-    { label: "Add Custom Links", done: user.links.length > 0, href: "/dashboard/links", Icon: Globe },
-    { label: "Claim a Badge", done: (profile?.badges?.length ?? 0) > 0, href: "/dashboard/badges", Icon: Award },
+    {
+      label: "Upload an Avatar",
+      done: !!profile?.avatarUrl,
+      href: "/dashboard/customize",
+      Icon: Upload,
+    },
+    {
+      label: "Add a Description",
+      done: !!profile?.bio && profile.bio.length > 0,
+      href: "/dashboard/customize",
+      Icon: Type,
+    },
+    {
+      label: "Add Socials",
+      done: user.socials.length > 0,
+      href: "/dashboard/links",
+      Icon: MessageSquare,
+    },
+    {
+      label: `Add Custom Links (${totalLinks}/5)`,
+      done: totalLinks >= 5,
+      href: "/dashboard/links",
+      Icon: Globe,
+    },
+    {
+      label: "Claim a Badge",
+      done: (profile?.badges?.length ?? 0) > 0,
+      href: "/dashboard/badges",
+      Icon: Award,
+    },
   ];
 
   const completedCount = tasks.filter((t) => t.done).length;
@@ -74,9 +104,12 @@ export default async function DashboardPage() {
             <SidebarItem href="/dashboard/customize" Icon={Palette} label="Customize" />
             <SidebarItem href="/dashboard/links" Icon={Link2} label="Links" />
             <SidebarItem href="/dashboard/music" Icon={Music} label="Music" />
-            <SidebarItem href={`/u/${user.username}`} Icon={Home} label="My Page" external />
+            <SidebarItemExternal href={`/u/${user.username}`} Icon={Home} label="My Page" />
             <SidebarItem href="/dashboard/badges" Icon={Award} label="Badges" />
             <SidebarItem href="/dashboard/premium" Icon={Crown} label="Premium" />
+            {isAdmin && (
+              <SidebarItem href="/dashboard/admin" Icon={ShieldCheck} label="Admin" />
+            )}
           </nav>
           <form action="/api/logout" method="post" className="mt-4">
             <button type="submit" className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-zinc-300 hover:text-red-300 hover:bg-red-500/10 transition">
@@ -90,7 +123,9 @@ export default async function DashboardPage() {
             style={{ background: "rgba(10, 10, 14, 0.7)", borderColor: "rgba(255, 255, 255, 0.06)", backdropFilter: "blur(20px)" }}>
             <div className="flex items-center justify-between">
               <h1 className="text-lg font-bold tracking-tight">Dashboard</h1>
-              <span className="text-sm text-zinc-400 hidden sm:block font-medium">@{user.username}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-zinc-400 hidden sm:block font-medium">@{user.username}</span>
+              </div>
             </div>
           </header>
 
@@ -153,24 +188,21 @@ export default async function DashboardPage() {
   );
 }
 
-function SidebarItem({ href, Icon, label, active, external }: { href: string; Icon: React.ElementType; label: string; active?: boolean; external?: boolean }) {
-  const className = `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${
-    active ? "bg-white/[0.07] text-white border border-white/15" : "text-zinc-300 hover:text-white hover:bg-white/[0.05] border border-transparent"
-  }`;
-  if (external) {
-    return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
-        <Icon className="h-4 w-4" />
-        <span className="flex-1">{label}</span>
-        <ExternalLink className="h-3 w-3 opacity-50" />
-      </a>
-    );
-  }
+function SidebarItem({ href, Icon, label, active }: { href: string; Icon: React.ElementType; label: string; active?: boolean }) {
   return (
-    <Link href={href} className={className}>
-      <Icon className="h-4 w-4" />
-      {label}
+    <Link href={href} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${active ? "bg-white/[0.07] text-white border border-white/15" : "text-zinc-300 hover:text-white hover:bg-white/[0.05] border border-transparent"}`}>
+      <Icon className="h-4 w-4" />{label}
     </Link>
+  );
+}
+
+function SidebarItemExternal({ href, Icon, label }: { href: string; Icon: React.ElementType; label: string }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-zinc-300 hover:text-white hover:bg-white/[0.05] border border-transparent transition">
+      <Icon className="h-4 w-4" />
+      <span className="flex-1">{label}</span>
+      <ExternalLink className="h-3 w-3 opacity-50" />
+    </a>
   );
 }
 

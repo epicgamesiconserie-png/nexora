@@ -15,11 +15,29 @@ export default function Home() {
 
   const [loggedIn, setLoggedIn] = useState(false);
 
+  const [snowflakes, setSnowflakes] = useState<
+    { left: number; size: number; delay: number; duration: number; opacity: number; blur: number; drift: number; rotate: number }[]
+  >([]);
+
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((j) => setLoggedIn(!!j.success))
       .catch(() => setLoggedIn(false));
+  }, []);
+
+  useEffect(() => {
+    const flakes = Array.from({ length: 60 }).map(() => ({
+      left: Math.random() * 100,
+      size: 6 + Math.random() * 10,
+      delay: Math.random() * 10,
+      duration: 4 + Math.random() * 6,
+      opacity: 0.4 + Math.random() * 0.6,
+      blur: Math.random() > 0.6 ? 1 : 0,
+      drift: (Math.random() - 0.5) * 80,
+      rotate: Math.random() * 360,
+    }));
+    setSnowflakes(flakes);
   }, []);
 
   useEffect(() => {
@@ -73,7 +91,20 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen bg-black text-white overflow-hidden">
-      {/* Purple light lines */}
+      <style jsx global>{`
+        @keyframes snowfall {
+          0% {
+            transform: translateY(-40px) translateX(0) rotate(0deg);
+          }
+          50% {
+            transform: translateY(50%) translateX(var(--drift)) rotate(180deg);
+          }
+          100% {
+            transform: translateY(calc(100% + 40px)) translateX(calc(var(--drift) * 2)) rotate(360deg);
+          }
+        }
+      `}</style>
+
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <svg
           className="absolute top-0 left-0 w-full h-full"
@@ -101,7 +132,6 @@ export default function Home() {
               <stop offset="70%" stopColor="#d8b4fe" stopOpacity="0.85" />
               <stop offset="100%" stopColor="#c084fc" stopOpacity="0" />
             </linearGradient>
-
             <filter id="glowLine" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation="0.8" result="blur" />
               <feMerge>
@@ -109,15 +139,7 @@ export default function Home() {
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
-            <filter id="glowLine2" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="1.2" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
           </defs>
-
           <path
             d="M -100 120 C 200 60, 400 180, 700 120 S 1200 60, 1600 140"
             fill="none"
@@ -142,7 +164,6 @@ export default function Home() {
         </svg>
       </div>
 
-      {/* NAV */}
       <header className="relative z-10 max-w-6xl mx-auto px-4 md:px-6 pt-4 md:pt-6">
         <div
           className="rounded-2xl px-4 md:px-6 py-3"
@@ -156,14 +177,12 @@ export default function Home() {
           }}
         >
           <div className="relative flex items-center justify-between gap-3">
-            {/* Logo — left */}
             <div className="flex-shrink-0">
               <Link href="/">
                 <SmokeLogoWordmark />
               </Link>
             </div>
 
-            {/* Center links — absolutely centered */}
             <nav className="hidden md:flex items-center justify-center gap-8 text-base font-semibold text-white absolute left-1/2 -translate-x-1/2">
               <Link href="/pricing" className="hover:text-zinc-300 transition">
                 Pricing
@@ -181,7 +200,6 @@ export default function Home() {
               </a>
             </nav>
 
-            {/* Buttons — right */}
             <div className="flex items-center justify-end gap-2 sm:gap-3 ml-auto">
               {loggedIn ? (
                 <Link
@@ -211,7 +229,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero */}
       <section className="relative z-10 max-w-3xl mx-auto px-6 pt-16 pb-24 text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs text-zinc-300">
           <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
@@ -280,106 +297,187 @@ export default function Home() {
         <p className="mt-4 text-xs text-zinc-500">Free forever · No credit card required</p>
       </section>
 
-      {/* Devices section */}
-      <section className="relative z-10 px-6 md:px-12 pt-16 pb-24 md:pb-32 flex flex-col md:flex-row items-center justify-between gap-8">
-        <div className="relative w-full md:w-[520px] text-left flex-shrink-0 md:ml-24 lg:ml-32">
-          <div
-            className="pointer-events-none absolute -inset-8 blur-3xl opacity-50"
-            style={{
-              background:
-                "radial-gradient(ellipse 70% 80% at 40% 40%, rgba(255,255,255,0.6), transparent 70%)",
-            }}
-          />
-          <p
-            className="relative text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] whitespace-nowrap"
-            style={{
-              color: "#ffffff",
-              textShadow: `
-                0 1px 0 rgba(255,255,255,0.95),
-                0 2px 0 rgba(220,220,220,0.8),
-                0 3px 0 rgba(180,180,180,0.6),
-                0 4px 0 rgba(140,140,140,0.4),
-                0 5px 12px rgba(0,0,0,0.6),
-                0 0 24px rgba(255,255,255,0.55),
-                0 0 48px rgba(255,255,255,0.35)
-              `,
-            }}
-          >
-            Available For All Devices
-          </p>
+      {/* Devices bar with mountains + snow */}
+      <div
+        className="relative z-20 w-full overflow-hidden"
+        style={{
+          backgroundColor: "rgba(15, 15, 20, 0.85)",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          boxShadow: "0 0 40px -25px rgba(255,255,255,0.08)",
+        }}
+      >
+        {/* Mountains background */}
+        <svg
+          className="pointer-events-none absolute inset-x-0 bottom-0 w-full h-[60%] z-0"
+          viewBox="0 0 1440 300"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient id="mtnFar" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#1a1a22" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#0a0a0f" stopOpacity="1" />
+            </linearGradient>
+            <linearGradient id="mtnMid" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#14141c" stopOpacity="1" />
+              <stop offset="100%" stopColor="#08080c" stopOpacity="1" />
+            </linearGradient>
+            <linearGradient id="mtnNear" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#0f0f16" stopOpacity="1" />
+              <stop offset="100%" stopColor="#050507" stopOpacity="1" />
+            </linearGradient>
+          </defs>
 
-          <p
-            className="relative mt-6 text-sm md:text-base leading-relaxed"
-            style={{
-              color: "#d4d4d8",
-              textShadow:
-                "0 0 12px rgba(255,255,255,0.4), 0 0 30px rgba(255,255,255,0.2)",
-            }}
-          >
-            Whether you're on a phone, tablet, or desktop — smokez.lol looks stunning everywhere. One link, always in reach.
-          </p>
-        </div>
-
-        <div className="relative flex flex-col sm:flex-row items-center justify-end flex-shrink-0 gap-4 sm:gap-0">
-          <div
-            className="pointer-events-none absolute blur-3xl"
-            style={{
-              width: "100%",
-              height: "100%",
-              right: "-50px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              background:
-                "radial-gradient(ellipse 50% 50% at 50% 50%, rgba(255,255,255,0.35), rgba(255,255,255,0.08) 45%, transparent 75%)",
-            }}
+          {/* Far mountains */}
+          <path
+            d="M 0 300 L 0 200 L 120 120 L 220 180 L 320 100 L 440 170 L 560 90 L 680 160 L 800 110 L 920 180 L 1040 100 L 1160 170 L 1280 130 L 1400 190 L 1440 160 L 1440 300 Z"
+            fill="url(#mtnFar)"
           />
 
-          <div
-            ref={cardRef}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            style={{
-              transform,
-              transition: "transform 0.15s ease-out",
-              transformStyle: "preserve-3d",
-              willChange: "transform",
-              position: "relative",
-              zIndex: 1,
-            }}
-            className="flex-shrink-0"
-          >
-            <img
-              src="/mockup.png"
-              alt="smokez.lol laptop preview"
-              className="w-[280px] sm:w-[500px] md:w-[700px] h-auto block"
-            />
-          </div>
+          {/* Mid mountains */}
+          <path
+            d="M 0 300 L 0 240 L 180 150 L 340 220 L 500 140 L 680 230 L 860 160 L 1020 230 L 1180 150 L 1340 220 L 1440 180 L 1440 300 Z"
+            fill="url(#mtnMid)"
+          />
 
-          <div
-            ref={phoneRef}
-            onMouseMove={handlePhoneMove}
-            onMouseLeave={handlePhoneLeave}
-            style={{
-              transform: phoneTransform,
-              transition: "transform 0.15s ease-out",
-              transformStyle: "preserve-3d",
-              willChange: "transform",
-              overflow: "hidden",
-              position: "relative",
-              zIndex: 2,
-            }}
-            className="flex-shrink-0 -ml-0 sm:-ml-[60px]"
-          >
-            <img
-              src="/phone.png.png"
-              alt="smokez.lol phone preview"
-              className="w-[140px] sm:w-[220px] md:w-[300px] h-auto block -mr-6 md:-mr-[50px]"
-            />
-          </div>
+          {/* Near mountains */}
+          <path
+            d="M 0 300 L 0 270 L 150 200 L 320 260 L 500 190 L 700 260 L 900 200 L 1100 260 L 1280 210 L 1440 260 L 1440 300 Z"
+            fill="url(#mtnNear)"
+          />
+        </svg>
+
+        {/* Snowflakes */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden z-[1]">
+          {snowflakes.map((flake, i) => (
+            <div
+              key={i}
+              className="absolute top-0"
+              style={
+                {
+                  left: `${flake.left}%`,
+                  opacity: flake.opacity,
+                  filter: flake.blur ? `blur(${flake.blur}px)` : undefined,
+                  animation: `snowfall ${flake.duration}s linear ${flake.delay}s infinite`,
+                  "--drift": `${flake.drift}px`,
+                } as React.CSSProperties
+              }
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width={flake.size}
+                height={flake.size}
+                style={{
+                  display: "block",
+                  transform: `rotate(${flake.rotate}deg)`,
+                  filter:
+                    "drop-shadow(0 0 4px rgba(255,255,255,0.9)) drop-shadow(0 0 8px rgba(200,220,255,0.5))",
+                }}
+              >
+                <g
+                  stroke="white"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  fill="none"
+                >
+                  <line x1="12" y1="2" x2="12" y2="22" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <line x1="5" y1="5" x2="19" y2="19" />
+                  <line x1="19" y1="5" x2="5" y2="19" />
+                  <line x1="12" y1="5" x2="9.5" y2="7.5" />
+                  <line x1="12" y1="5" x2="14.5" y2="7.5" />
+                  <line x1="12" y1="19" x2="9.5" y2="16.5" />
+                  <line x1="12" y1="19" x2="14.5" y2="16.5" />
+                  <line x1="5" y1="12" x2="7.5" y2="9.5" />
+                  <line x1="5" y1="12" x2="7.5" y2="14.5" />
+                  <line x1="19" y1="12" x2="16.5" y2="9.5" />
+                  <line x1="19" y1="12" x2="16.5" y2="14.5" />
+                </g>
+              </svg>
+            </div>
+          ))}
         </div>
-      </section>
 
-      {/* HOW IT WORKS */}
+        <section className="relative z-10 px-6 md:px-12 py-10 md:py-14 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="relative w-full md:w-[520px] text-left flex-shrink-0 md:ml-24 lg:ml-32">
+            <p
+              className="relative text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] whitespace-nowrap"
+              style={{
+                color: "#ffffff",
+                textShadow: `
+                  0 1px 0 rgba(255,255,255,0.95),
+                  0 2px 0 rgba(220,220,220,0.8),
+                  0 3px 0 rgba(180,180,180,0.6),
+                  0 4px 0 rgba(140,140,140,0.4),
+                  0 5px 12px rgba(0,0,0,0.6),
+                  0 0 24px rgba(255,255,255,0.55),
+                  0 0 48px rgba(255,255,255,0.35)
+                `,
+              }}
+            >
+              Available For All Devices
+            </p>
+
+            <p
+              className="relative mt-6 text-sm md:text-base leading-relaxed"
+              style={{
+                color: "#d4d4d8",
+                textShadow:
+                  "0 0 12px rgba(255,255,255,0.4), 0 0 30px rgba(255,255,255,0.2)",
+              }}
+            >
+              Whether you're on a phone, tablet, or desktop — smokez.lol looks stunning everywhere. One link, always in reach.
+            </p>
+          </div>
+
+          <div className="relative flex flex-col sm:flex-row items-center justify-end flex-shrink-0 gap-4 sm:gap-0">
+            <div
+              ref={cardRef}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              style={{
+                transform,
+                transition: "transform 0.15s ease-out",
+                transformStyle: "preserve-3d",
+                willChange: "transform",
+                position: "relative",
+                zIndex: 1,
+              }}
+              className="flex-shrink-0"
+            >
+              <img
+                src="/mockup.png"
+                alt="smokez.lol laptop preview"
+                className="w-[280px] sm:w-[500px] md:w-[700px] h-auto block"
+              />
+            </div>
+
+            <div
+              ref={phoneRef}
+              onMouseMove={handlePhoneMove}
+              onMouseLeave={handlePhoneLeave}
+              style={{
+                transform: phoneTransform,
+                transition: "transform 0.15s ease-out",
+                transformStyle: "preserve-3d",
+                willChange: "transform",
+                overflow: "hidden",
+                position: "relative",
+                zIndex: 2,
+              }}
+              className="flex-shrink-0 -ml-0 sm:-ml-[60px]"
+            >
+              <img
+                src="/phone.png.png"
+                alt="smokez.lol phone preview"
+                className="w-[140px] sm:w-[220px] md:w-[300px] h-auto block -mr-6 md:-mr-[50px]"
+              />
+            </div>
+          </div>
+        </section>
+      </div>
+
       <section className="relative z-10 max-w-6xl mx-auto px-6 pt-32 pb-24">
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs text-zinc-300">
@@ -510,7 +608,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURE CARDS */}
       <section className="relative z-10 max-w-6xl mx-auto px-6 pt-48 pb-32">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-8 hover:border-white/25 hover:bg-white/[0.05] transition">
@@ -551,10 +648,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Extra scrollable space */}
       <div className="h-[40vh]" />
 
-      {/* Grid background wrapper */}
       <div
         className="relative w-full"
         style={{

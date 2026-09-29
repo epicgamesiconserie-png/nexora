@@ -5,16 +5,26 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Cropper from "react-easy-crop";
 import { toast } from "sonner";
-import { saveAvatarUrl, saveCustomization, removeAvatar } from "./actions";
+import {
+  saveAvatarUrl,
+  saveCustomization,
+  removeAvatar,
+  removeBackgroundImage,
+  removeBackgroundVideo,
+  removeAudio,
+} from "./actions";
 import { AnimatedTitle, type AnimatedTitleStyle } from "@/components/AnimatedTitle";
+import { MouseTrail, MouseTrailPreview, type MouseTrailStyle } from "@/components/MouseTrail";
 import {
   LayoutDashboard, Link2, Palette, Music, BarChart3,
   LogOut, Crown, Home, Award, X, ZoomIn, RotateCw,
   MapPin, AlignLeft, Save, Sparkles, Check, Trash2,
-  ExternalLink,
+  ExternalLink, MousePointer2, Snowflake, Star, Heart,
+  Droplet, Zap, Flame, Music2, Circle, Film, User,
+  Type, Droplets, Loader2, ShieldCheck, Image as ImageIcon,
 } from "lucide-react";
 
-type UploadType = "background" | "audio" | "avatar" | "cursor";
+type UploadType = "background" | "backgroundVideo" | "audio" | "avatar";
 
 const ANIMATED_TITLES: { value: AnimatedTitleStyle; label: string; description: string }[] = [
   { value: "none",       label: "None",        description: "Plain text" },
@@ -26,6 +36,33 @@ const ANIMATED_TITLES: { value: AnimatedTitleStyle; label: string; description: 
   { value: "shuffle",    label: "Shuffle",     description: "Wiggle shake" },
   { value: "fuzzy",      label: "Fuzzy",       description: "Blur pulse" },
   { value: "flicker",    label: "Flicker",     description: "Neon flicker" },
+];
+
+const MOUSE_TRAILS: { value: MouseTrailStyle; label: string; description: string; Icon: React.ElementType }[] = [
+  { value: "none",      label: "None",         description: "No trail",              Icon: X },
+  { value: "snow",      label: "Snow",         description: "White particles fall",  Icon: Snowflake },
+  { value: "sparkle",   label: "Sparkle",      description: "Golden flashes",        Icon: Sparkles },
+  { value: "cursor",    label: "Cursor Ghost", description: "Fading cursors",        Icon: MousePointer2 },
+  { value: "stars",     label: "Stars",        description: "Yellow stars",          Icon: Star },
+  { value: "hearts",    label: "Hearts",       description: "Rising hearts",         Icon: Heart },
+  { value: "bubbles",   label: "Bubbles",      description: "Blue bubbles",          Icon: Droplet },
+  { value: "lightning", label: "Lightning",    description: "Electric bolts",        Icon: Zap },
+  { value: "fire",      label: "Fire",         description: "Rising flames",         Icon: Flame },
+  { value: "music",     label: "Music",        description: "Music notes",           Icon: Music2 },
+  { value: "rainbow",   label: "Rainbow",      description: "Rainbow particles",     Icon: Sparkles },
+  { value: "confetti",  label: "Confetti",     description: "Colorful confetti",     Icon: Sparkles },
+];
+
+const FONTS = [
+  { value: "Inter",      class: "font-inter",      label: "Inter" },
+  { value: "Poppins",    class: "font-poppins",    label: "Poppins" },
+  { value: "Montserrat", class: "font-montserrat", label: "Montserrat" },
+  { value: "Playfair",   class: "font-playfair",   label: "Playfair Display" },
+  { value: "Roboto",     class: "font-roboto",     label: "Roboto" },
+  { value: "Lora",       class: "font-lora",       label: "Lora" },
+  { value: "Space",      class: "font-space",      label: "Space Grotesk" },
+  { value: "DM",         class: "font-dm",         label: "DM Sans" },
+  { value: "Nunito",     class: "font-nunito",     label: "Nunito" },
 ];
 
 function rotateSize(width: number, height: number, rotation: number) {
@@ -42,7 +79,7 @@ async function getCroppedImg(
   rotation = 0
 ): Promise<Blob> {
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image();
+    const img = new window.Image();
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = reject;
@@ -80,11 +117,15 @@ export default function CustomizePage() {
   const pathname = usePathname();
 
   const [username, setUsername] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [uploads, setUploads] = useState<Record<UploadType, string | null>>({
-    background: null, audio: null, avatar: null, cursor: null,
+    background: null, backgroundVideo: null, audio: null, avatar: null,
   });
   const [uploading, setUploading] = useState<UploadType | null>(null);
   const [removingAvatar, setRemovingAvatar] = useState(false);
+  const [removingVideo, setRemovingVideo] = useState(false);
+  const [removingBackground, setRemovingBackground] = useState(false);
+  const [removingAudio, setRemovingAudio] = useState(false);
 
   const [cropImage, setCropImage] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -93,6 +134,7 @@ export default function CustomizePage() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
 
   const [bio, setBio] = useState("");
+  const [profileFont, setProfileFont] = useState("Inter");
   const [location, setLocation] = useState("");
   const [accentColor, setAccentColor] = useState("#a855f7");
   const [textColor, setTextColor] = useState("#ffffff");
@@ -106,19 +148,26 @@ export default function CustomizePage() {
   const [volumeControl, setVolumeControl] = useState(false);
   const [animatedTitle, setAnimatedTitle] = useState<AnimatedTitleStyle>("none");
   const [animatedTitleModalOpen, setAnimatedTitleModalOpen] = useState(false);
+  const [mouseTrail, setMouseTrail] = useState<MouseTrailStyle>("none");
+  const [mouseTrailModalOpen, setMouseTrailModalOpen] = useState(false);
+  const [fontModalOpen, setFontModalOpen] = useState(false);
 
   const [savingCustomization, setSavingCustomization] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentUploadType = useRef<UploadType | null>(null);
 
+  const glassCard = profileOpacity <= 20;
+
   useEffect(() => {
     fetch("/api/user/profile")
       .then((r) => r.json())
       .then((data) => {
         if (data.username) setUsername(data.username);
+        if (data.role === "admin") setIsAdmin(true);
         if (data.profile) {
           setBio(data.profile.bio || "");
+          setProfileFont(data.profile.font || "Inter");
           setAccentColor(data.profile.accentColor || "#a855f7");
           setTextColor(data.profile.textColor || "#ffffff");
           setBackgroundColor(data.profile.backgroundColor || "#0a0a0a");
@@ -131,20 +180,31 @@ export default function CustomizePage() {
           setSwapBoxColors(data.profile.swapBoxColors ?? false);
           setVolumeControl(data.profile.volumeControl ?? false);
           setAnimatedTitle((data.profile.animatedTitleStyle as AnimatedTitleStyle) || "none");
+          setMouseTrail((data.profile.mouseTrail as MouseTrailStyle) || "none");
+
+          setUploads({
+            background: data.profile.backgroundUrl || null,
+            backgroundVideo: data.profile.backgroundVideoUrl || null,
+            audio: data.profile.audioUrl || null,
+            avatar: data.profile.avatarUrl || null,
+          });
         }
       })
       .catch(() => {});
   }, []);
 
-  const sidebarLinks = [
-    { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-    { name: "Customize", href: "/dashboard/customize", icon: Palette },
-    { name: "Links", href: "/dashboard/links", icon: Link2 },
-    { name: "Music", href: "/dashboard/music", icon: Music },
-    { name: "My Page", href: username ? `/u/${username}` : "#", icon: Home, external: true },
-    { name: "Badges", href: "/dashboard/badges", icon: Award },
-    { name: "Premium", href: "/dashboard/premium", icon: Crown },
+  const getSidebarLinks = () => [
+    { name: "Overview", href: "/dashboard", icon: LayoutDashboard, external: false },
+    { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3, external: false },
+    { name: "Customize", href: "/dashboard/customize", icon: Palette, external: false },
+    { name: "Links", href: "/dashboard/links", icon: Link2, external: false },
+    { name: "Music", href: "/dashboard/music", icon: Music, external: false },
+    { name: "My Page", href: username ? `/u/${username}` : "", icon: Home, external: true },
+    { name: "Badges", href: "/dashboard/badges", icon: Award, external: false },
+    { name: "Premium", href: "/dashboard/premium", icon: Crown, external: false },
+    ...(isAdmin
+      ? [{ name: "Admin", href: "/dashboard/admin", icon: ShieldCheck, external: false }]
+      : []),
   ];
 
   const handleBoxClick = (type: UploadType) => {
@@ -190,9 +250,21 @@ export default function CustomizePage() {
 
       const result = await saveAvatarUrl(type, blob.url);
       if (result.success) {
-        toast.success(`${type === "avatar" ? "Avatar" : type} updated`);
+        toast.success(
+          type === "avatar"
+            ? "Avatar updated"
+            : type === "backgroundVideo"
+            ? "Background video updated"
+            : type === "background"
+            ? "Background image updated"
+            : `${type} updated`
+        );
+
+        if (type === "background") setBackgroundEffect("image");
+        else if (type === "backgroundVideo") setBackgroundEffect("video");
       } else {
         toast.error(result.error || "Failed to save to profile");
+        setUploads((prev) => ({ ...prev, [type]: null }));
       }
     } catch (err) {
       console.error("Upload failed:", err);
@@ -203,9 +275,32 @@ export default function CustomizePage() {
   }
 
   async function saveCroppedAvatar() {
-    if (!cropImage || !croppedAreaPixels) return;
+    if (!cropImage) {
+      toast.error("No image selected");
+      return;
+    }
+
+    let area = croppedAreaPixels;
+    if (!area) {
+      const img = new window.Image();
+      img.crossOrigin = "anonymous";
+      await new Promise<void>((resolve) => {
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+        img.src = cropImage;
+      });
+
+      const size = Math.min(img.width, img.height);
+      area = {
+        x: (img.width - size) / 2,
+        y: (img.height - size) / 2,
+        width: size,
+        height: size,
+      };
+    }
+
     try {
-      const croppedBlob = await getCroppedImg(cropImage, croppedAreaPixels, rotation);
+      const croppedBlob = await getCroppedImg(cropImage, area, rotation);
       const file = new File([croppedBlob], `avatar-${Date.now()}.jpg`, {
         type: "image/jpeg",
       });
@@ -214,9 +309,10 @@ export default function CustomizePage() {
       setZoom(1);
       setRotation(0);
       setCrop({ x: 0, y: 0 });
+      setCroppedAreaPixels(null);
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to crop image");
+      console.error("Crop/save failed:", err);
+      toast.error("Failed to save avatar: " + (err as Error).message);
     }
   }
 
@@ -233,10 +329,52 @@ export default function CustomizePage() {
     }
   }
 
+  async function handleRemoveVideo() {
+    if (!confirm("Remove your background video?")) return;
+    setRemovingVideo(true);
+    const res = await removeBackgroundVideo();
+    setRemovingVideo(false);
+    if (res.success) {
+      toast.success("Background video removed");
+      setUploads((prev) => ({ ...prev, backgroundVideo: null }));
+      setBackgroundEffect("gradient");
+    } else {
+      toast.error(res.error || "Failed to remove");
+    }
+  }
+
+  async function handleRemoveBackgroundImage() {
+    if (!confirm("Remove your background image?")) return;
+    setRemovingBackground(true);
+    const res = await removeBackgroundImage();
+    setRemovingBackground(false);
+    if (res.success) {
+      toast.success("Background image removed");
+      setUploads((prev) => ({ ...prev, background: null }));
+      setBackgroundEffect("gradient");
+    } else {
+      toast.error(res.error || "Failed to remove");
+    }
+  }
+
+  async function handleRemoveAudio() {
+    if (!confirm("Remove your audio?")) return;
+    setRemovingAudio(true);
+    const res = await removeAudio();
+    setRemovingAudio(false);
+    if (res.success) {
+      toast.success("Audio removed");
+      setUploads((prev) => ({ ...prev, audio: null }));
+    } else {
+      toast.error(res.error || "Failed to remove");
+    }
+  }
+
   async function handleSaveCustomization() {
     setSavingCustomization(true);
     const result = await saveCustomization({
       bio,
+      font: profileFont,
       accentColor,
       textColor,
       backgroundColor,
@@ -250,22 +388,37 @@ export default function CustomizePage() {
       animatedTitleStyle: animatedTitle,
       swapBoxColors,
       volumeControl,
+      mouseTrail,
     });
     setSavingCustomization(false);
     if (result.success) toast.success("Customization saved");
     else toast.error(result.error || "Failed to save");
   }
 
-  const boxes = [
-    { type: "background" as UploadType, label: "Background",     icon: "🖼️", hint: "Click to upload a file" },
-    { type: "audio" as UploadType,      label: "Audio",          icon: "🎵", hint: "Click to open audio manager" },
-    { type: "avatar" as UploadType,     label: "Profile Avatar", icon: "👤", hint: "Click to upload a file" },
-    { type: "cursor" as UploadType,     label: "Custom Cursor",  icon: "🖱️", hint: "Click to upload a file" },
+  function toggleGlassCard() {
+    if (glassCard) setProfileOpacity(100);
+    else setProfileOpacity(5);
+  }
+
+  const boxes: { type: UploadType; label: string; Icon: React.ElementType; hint: string }[] = [
+    { type: "background",      label: "Background", Icon: ImageIcon, hint: "Image" },
+    { type: "backgroundVideo", label: "BG Video",   Icon: Film,      hint: "MP4" },
+    { type: "audio",           label: "Audio",      Icon: Music,     hint: "MP3" },
+    { type: "avatar",          label: "Avatar",     Icon: User,      hint: "Image" },
   ];
+
+  const currentTrail = MOUSE_TRAILS.find((t) => t.value === mouseTrail);
+  const currentFont = FONTS.find((f) => f.value === profileFont) || FONTS[0];
 
   return (
     <div className="flex min-h-screen bg-black text-white">
-      <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,audio/*" />
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        accept="image/*,video/mp4,video/webm,audio/*"
+      />
 
       <aside
         className="hidden md:flex w-64 flex-col p-4 border-r"
@@ -280,12 +433,20 @@ export default function CustomizePage() {
           <span className="text-xl font-bold">smokez.lol</span>
         </Link>
         <nav className="flex flex-col gap-1 flex-1">
-          {sidebarLinks.map((link) => {
+          {getSidebarLinks().map((link) => {
             const active = pathname === link.href;
+            if (link.external && !link.href.startsWith("/u/")) {
+              return (
+                <div key={link.name} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold text-zinc-500 border border-transparent cursor-wait">
+                  <link.icon className="h-4 w-4" />
+                  <span className="flex-1">{link.name}</span>
+                  <span className="text-[10px]">loading...</span>
+                </div>
+              );
+            }
             const className = `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${
-              active
-                ? "bg-white/[0.07] text-white border border-white/15"
-                : "text-zinc-300 hover:text-white hover:bg-white/[0.05] border border-transparent"
+              active ? "bg-white/[0.07] text-white border border-white/15"
+                     : "text-zinc-300 hover:text-white hover:bg-white/[0.05] border border-transparent"
             }`;
             if (link.external) {
               return (
@@ -315,8 +476,8 @@ export default function CustomizePage() {
       <main className="flex-1 p-6 md:p-8">
         <div className="max-w-5xl mx-auto space-y-10">
           <section>
-            <h1 className="text-3xl md:text-4xl font-bold mb-8">Assets Uploader</h1>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <h1 className="text-3xl md:text-4xl font-bold mb-6">Assets</h1>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {boxes.map((box) => {
                 const isUploaded = uploads[box.type];
                 const isUploading = uploading === box.type;
@@ -325,20 +486,69 @@ export default function CustomizePage() {
                     key={box.type}
                     onClick={() => handleBoxClick(box.type)}
                     disabled={isUploading}
-                    className={`flex flex-col items-center justify-center gap-3 p-8 rounded-xl border transition text-center ${
+                    className={`flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-lg border transition text-center ${
                       isUploaded
                         ? "border-green-500/50 bg-green-500/5"
                         : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
                     } ${isUploading ? "opacity-50 cursor-wait" : ""}`}
                   >
-                    <span className="text-3xl">{box.icon}</span>
-                    <span className="font-semibold">{box.label}</span>
-                    <span className="text-xs text-zinc-500">
-                      {isUploading ? "Uploading..." : isUploaded ? "✓ Uploaded" : box.hint}
+                    {isUploading ? (
+                      <Loader2 className="h-5 w-5 text-zinc-400 animate-spin" />
+                    ) : (
+                      <box.Icon
+                        className={`h-5 w-5 ${isUploaded ? "text-green-400" : "text-zinc-400"}`}
+                        strokeWidth={1.5}
+                      />
+                    )}
+                    <span className="text-[11px] font-semibold leading-tight">{box.label}</span>
+                    <span className="text-[9px] text-zinc-500">
+                      {isUploading ? "..." : isUploaded ? "✓ Done" : box.hint}
                     </span>
                   </button>
                 );
               })}
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleRemoveBackgroundImage}
+                disabled={removingBackground || !uploads.background}
+                className="flex items-center gap-2 h-9 px-4 rounded-lg border border-red-500/30 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/50 font-semibold text-xs transition disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {removingBackground ? "..." : "Remove BG Image"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleRemoveVideo}
+                disabled={removingVideo || !uploads.backgroundVideo}
+                className="flex items-center gap-2 h-9 px-4 rounded-lg border border-red-500/30 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/50 font-semibold text-xs transition disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {removingVideo ? "..." : "Remove BG Video"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleRemoveAudio}
+                disabled={removingAudio || !uploads.audio}
+                className="flex items-center gap-2 h-9 px-4 rounded-lg border border-red-500/30 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/50 font-semibold text-xs transition disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {removingAudio ? "..." : "Remove Audio"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleRemoveAvatar}
+                disabled={removingAvatar || !uploads.avatar}
+                className="flex items-center gap-2 h-9 px-4 rounded-lg border border-red-500/30 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/50 font-semibold text-xs transition disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {removingAvatar ? "..." : "Remove Avatar"}
+              </button>
             </div>
           </section>
 
@@ -374,13 +584,20 @@ export default function CustomizePage() {
                 <div className="md:col-span-2">
                   <button
                     type="button"
-                    onClick={handleRemoveAvatar}
-                    disabled={removingAvatar}
-                    className="flex items-center gap-2 h-11 px-5 rounded-xl border border-red-500/40 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/60 font-semibold text-sm transition disabled:opacity-50"
+                    onClick={toggleGlassCard}
+                    className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left"
                   >
-                    <Trash2 className="h-4 w-4" />
-                    {removingAvatar ? "Removing..." : "Remove Profile Picture"}
+                    <div className="flex items-center gap-2">
+                      <Droplets className="h-4 w-4 text-zinc-400" />
+                      <span className="text-sm font-semibold text-white">See-through Card</span>
+                    </div>
+                    <span className={`relative h-6 w-11 rounded-full transition ${glassCard ? "bg-purple-500" : "bg-white/10"}`}>
+                      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${glassCard ? "left-[22px]" : "left-0.5"}`} />
+                    </span>
                   </button>
+                  <p className="text-[10px] text-zinc-500 mt-1">
+                    Makes the card transparent so your background shows through.
+                  </p>
                 </div>
 
                 <Slider label="Profile Opacity" value={profileOpacity} min={0} max={100} step={1} suffix="%" onChange={setProfileOpacity} />
@@ -391,6 +608,7 @@ export default function CustomizePage() {
                     { value: "gradient", label: "Gradient" },
                     { value: "solid", label: "Solid Color" },
                     { value: "image", label: "Image" },
+                    { value: "video", label: "Video" },
                     { value: "none", label: "None" },
                   ]}
                 />
@@ -418,15 +636,45 @@ export default function CustomizePage() {
                   <Toggle label="Monochrome Icons" value={monochromeIcons} onChange={setMonochromeIcons} />
                   <Toggle label="Swap Box Colors" value={swapBoxColors} onChange={setSwapBoxColors} />
                   <Toggle label="Volume Control" value={volumeControl} onChange={setVolumeControl} />
+
                   <button
                     type="button"
                     onClick={() => setAnimatedTitleModalOpen(true)}
                     className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left"
                   >
-                    <span className="text-sm font-semibold text-white">Animated Title</span>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-zinc-400" />
+                      <span className="text-sm font-semibold text-white">Animated Title</span>
+                    </div>
                     <span className="text-xs text-zinc-400 capitalize">
                       {ANIMATED_TITLES.find((a) => a.value === animatedTitle)?.label || "None"}
                     </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMouseTrailModalOpen(true)}
+                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <MousePointer2 className="h-4 w-4 text-zinc-400" />
+                      <span className="text-sm font-semibold text-white">Mouse Trail</span>
+                    </div>
+                    <span className="text-xs text-zinc-400">
+                      {currentTrail?.label || "None"}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFontModalOpen(true)}
+                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left md:col-span-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Type className="h-4 w-4 text-zinc-400" />
+                      <span className="text-sm font-semibold text-white">Font</span>
+                    </div>
+                    <span className="text-xs text-zinc-400">{currentFont.label}</span>
                   </button>
                 </div>
               </div>
@@ -446,6 +694,7 @@ export default function CustomizePage() {
         </div>
       </main>
 
+      {/* ANIMATED TITLE MODAL */}
       {animatedTitleModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
@@ -488,6 +737,108 @@ export default function CustomizePage() {
         </div>
       )}
 
+      {/* MOUSE TRAIL MODAL */}
+      {mouseTrailModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
+          onClick={() => setMouseTrailModalOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-5xl rounded-2xl border border-white/10 overflow-hidden"
+            style={{ background: "rgba(15,15,20,0.98)", boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <h2 className="text-lg font-bold">Mouse Trail</h2>
+              <button onClick={() => setMouseTrailModalOpen(false)} className="text-zinc-500 hover:text-white transition">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[70vh] overflow-y-auto">
+              {MOUSE_TRAILS.map((option) => {
+                const selected = mouseTrail === option.value;
+                const Icon = option.Icon;
+                return (
+                  <button
+                    key={option.value}
+                    onClick={() => setMouseTrail(option.value)}
+                    className={`relative flex flex-col rounded-xl border overflow-hidden text-center transition ${
+                      selected ? "border-purple-500 bg-purple-500/[0.07]"
+                              : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
+                    }`}
+                  >
+                    {selected && <Check className="absolute top-2 right-2 h-4 w-4 text-purple-400 z-10" />}
+                    <div className="relative w-full h-32 bg-black/40 overflow-hidden">
+                      <MouseTrailPreview style={option.value} color={accentColor} />
+                    </div>
+                    <div className="p-3 border-t border-white/5">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <Icon className="h-3.5 w-3.5 text-zinc-400" />
+                        <span className="text-xs font-semibold text-white">{option.label}</span>
+                      </div>
+                      <div className="text-[10px] text-zinc-500 mt-0.5">{option.description}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="px-6 py-4 border-t border-white/10 flex justify-between items-center">
+              <p className="text-xs text-zinc-500">Each preview shows the trail animating live.</p>
+              <button onClick={() => setMouseTrailModalOpen(false)}
+                className="h-11 px-5 rounded-xl bg-white text-black hover:bg-zinc-200 font-semibold transition">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FONT MODAL */}
+      {fontModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
+          onClick={() => setFontModalOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-3xl rounded-2xl border border-white/10 overflow-hidden"
+            style={{ background: "rgba(15,15,20,0.98)", boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <h2 className="text-lg font-bold">Font</h2>
+              <button onClick={() => setFontModalOpen(false)} className="text-zinc-500 hover:text-white transition">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
+              {FONTS.map((font) => {
+                const selected = profileFont === font.value;
+                return (
+                  <button
+                    key={font.value}
+                    onClick={() => setProfileFont(font.value)}
+                    className={`relative flex flex-col items-start gap-3 p-5 rounded-xl border text-left transition ${
+                      selected ? "border-purple-500 bg-purple-500/10"
+                              : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
+                    }`}
+                  >
+                    {selected && <Check className="absolute top-3 right-3 h-4 w-4 text-purple-400" />}
+                    <span className="text-xs uppercase tracking-wider text-zinc-500 font-semibold">{font.label}</span>
+                    <div className={`py-3 min-h-[60px] flex items-center w-full overflow-hidden ${font.class}`}>
+                      <span className="text-2xl font-bold text-white">@username</span>
+                    </div>
+                    <span className="text-xs text-zinc-500">The quick brown fox jumps over</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="px-6 py-4 border-t border-white/10 flex justify-end">
+              <button onClick={() => setFontModalOpen(false)}
+                className="h-11 px-5 rounded-xl bg-white text-black hover:bg-zinc-200 font-semibold transition">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <MouseTrail key={mouseTrail} style={mouseTrail} color={accentColor} />
+
+      {/* CROPPER MODAL */}
       {cropImage && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}>
@@ -500,10 +851,28 @@ export default function CustomizePage() {
               </button>
             </div>
             <div className="relative w-full" style={{ height: 340, background: "#000" }}>
-              <Cropper image={cropImage} crop={crop} zoom={zoom} rotation={rotation}
-                aspect={1} cropShape="round" showGrid objectFit="contain"
-                onCropChange={setCrop} onZoomChange={setZoom}
-                onRotationChange={setRotation} onCropComplete={onCropComplete} />
+              <Cropper
+                image={cropImage}
+                crop={crop}
+                zoom={zoom}
+                rotation={rotation}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                objectFit="contain"
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onRotationChange={setRotation}
+                onCropComplete={onCropComplete}
+                style={{
+                  containerStyle: {
+                    width: "100%",
+                    height: "100%",
+                    background: "#000",
+                    willChange: "transform",
+                  },
+                }}
+              />
             </div>
             <div className="px-6 py-5 space-y-4">
               <p className="text-xs text-zinc-500 text-center">Drag to move. Scroll to zoom.</p>

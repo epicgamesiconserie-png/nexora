@@ -8,12 +8,15 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  username     String   @unique
-  usernameNorm String   @unique @map("username_norm")
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id           String    @id @default(cuid())
+  username     String    @unique
+  usernameNorm String    @unique @map("username_norm")
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         String    @default("user") @map("role")
+  isPremium    Boolean   @default(false) @map("is_premium")
+  premiumUntil DateTime? @map("premium_until")
+  createdAt    DateTime  @default(now()) @map("created_at")
 
   profile        Profile?
   links          Link[]
@@ -21,6 +24,8 @@ model User {
   sessions       Session[]
   passwordResets PasswordReset[]
   music          Music?
+  premiumCodes   PremiumCode[] @relation("PremiumCodeCreator")
+  usedCodes      PremiumCode[] @relation("PremiumCodeUser")
 
   @@map("users")
 }
@@ -32,6 +37,7 @@ model Profile {
   bio                String?  @db.Text
   avatarUrl          String?  @map("avatar_url")
   backgroundUrl      String?  @map("background_url")
+  backgroundVideoUrl String?  @map("background_video_url")
   backgroundType     String   @default("gradient") @map("background_type")
   backgroundColor    String   @default("#0a0a0a") @map("background_color")
   backgroundGradient String   @default("linear-gradient(160deg,#0a0a0a,#14141a)") @map("background_gradient")
@@ -45,6 +51,8 @@ model Profile {
   showViewCount      Boolean  @default(true) @map("show_view_count")
   views              Int      @default(0)
   badges             String[] @default([])
+  unlockedBadges     String[] @default([]) @map("unlocked_badges")
+  hiddenBadges       String[] @default([]) @map("hidden_badges")
   audioUrl           String?  @map("audio_url")
   audioTitle         String?  @map("audio_title")
   audioArtist        String?  @map("audio_artist")
@@ -56,6 +64,7 @@ model Profile {
   animatedTitleStyle String   @default("none") @map("animated_title_style")
   swapBoxColors      Boolean  @default(false) @map("swap_box_colors")
   volumeControl      Boolean  @default(false) @map("volume_control")
+  mouseTrail         String   @default("none") @map("mouse_trail")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
@@ -146,4 +155,20 @@ model PasswordReset {
 
   @@index([userId])
   @@map("password_resets")
+}
+
+model PremiumCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  duration    Int       @default(30) @map("duration_days")
+  createdById String    @map("created_by_id")
+  usedById    String?   @map("used_by_id")
+  usedAt      DateTime? @map("used_at")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  createdBy User  @relation("PremiumCodeCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  usedBy    User? @relation("PremiumCodeUser", fields: [usedById], references: [id], onDelete: SetNull)
+
+  @@map("premium_codes")
 }

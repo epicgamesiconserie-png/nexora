@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -11,7 +11,7 @@ import {
   ShieldCheck, Clock, Gem, Gift, CreditCard, Loader2,
 } from "lucide-react";
 
-export default function PremiumPage() {
+function PremiumPageInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [username, setUsername] = useState("");
@@ -385,5 +385,13 @@ function FeatureRow({ label, gold }: { label: string; gold?: boolean }) {
         {label}
       </span>
     </li>
+  );
+}
+
+export default function PremiumPage() {
+  return (
+    <Suspense fallback={null}>
+      <PremiumPageInner />
+    </Suspense>
   );
 }

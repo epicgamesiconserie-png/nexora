@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { BADGES } from "@/lib/badges";
-import { computeEarnedBadges } from "@/lib/checkBadges";
+import { computeEarnedBadges, mergeUnlocked } from "@/lib/checkBadges";
 
 export async function POST(request: Request) {
   const session = await getSession();
@@ -20,7 +20,10 @@ export async function POST(request: Request) {
 
   const { visibleBadges } = body;
   if (!Array.isArray(visibleBadges)) {
-    return NextResponse.json({ error: "Missing visibleBadges array" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing visibleBadges array" },
+      { status: 400 }
+    );
   }
 
   // Validate all IDs are real badges
@@ -28,22 +31,66 @@ export async function POST(request: Request) {
     BADGES.some((b) => b.id === id)
   );
 
-  // Compute what the user actually earned
-  const earned = await computeEarnedBadges(session.userId);
+  // Fetch the user data needed to compute / read unlocked badges
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: {
+      createdAt: true,
+      role: true,
+      isPremium: true,
+      profile: {
+        select: {
+          avatarUrl: true,
+          bio: true,
+          backgroundUrl: true,
+          audioUrl: true,
+          views: true,
+          unlockedBadges: true,
+        },
+      },
+      _count: { select: { socials: true, links: true } },
+    },
+  });
 
-  // Hidden = earned − visible
-  const newHidden = earned.filter((id) => !validIds.includes(id));
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
 
-  // Only allow showing badges that were earned
-  const finalVisible = earned.filter((id) => validIds.includes(id));
+  // Compute currently-earned + merge with the persisted unlocks
+  const currentlyEarned = computeEarnedBadges({
+    avatarUrl: user.profile?.avatarUrl,
+    bio: user.profile?.bio,
+    backgroundUrl: user.profile?.backgroundUrl,
+    audioUrl: user.profile?.audioUrl,
+    views: user.profile?.views,
+    createdAt: user.createdAt,
+    socialsCount: user._count.socials,
+    linksCount: user._count.links,
+    isAdmin: user.role === "admin",
+    isPremium: user.isPremium,
+  });
+
+  const stored = user.profile?.unlockedBadges ?? [];
+  const unlocked = mergeUnlocked(stored, currentlyEarned);
+
+  // Hidden = unlocked − visible
+  const newHidden = unlocked.filter((id) => !validIds.includes(id));
+
+  // Only allow showing badges that have been unlocked
+  const finalVisible = unlocked.filter((id) => validIds.includes(id));
 
   await prisma.profile.upsert({
     where: { userId: session.userId },
-    update: { badges: finalVisible, hiddenBadges: newHidden },
+    update: {
+      badges: finalVisible,
+      hiddenBadges: newHidden,
+      unlockedBadges: unlocked,
+    },
     create: {
       userId: session.userId,
       badges: finalVisible,
       hiddenBadges: newHidden,
+      unlockedBadges: unlocked,
     },
   });
 
@@ -54,5 +101,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     badges: finalVisible,
     hiddenBadges: newHidden,
+    unlockedBadges: unlocked,
   });
 }

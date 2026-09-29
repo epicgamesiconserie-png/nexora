@@ -11,12 +11,10 @@ import {
   revokePremium,
 } from "./actions";
 import {
-  LayoutDashboard, Link2, Palette, Music, BarChart3,
+  LayoutDashboard, Link2, Palette, Music,
   LogOut, Crown, Home, Award, Plus, Trash2, Copy, Check,
   ExternalLink, ShieldCheck, Ticket, Ban,
 } from "lucide-react";
-
-const OWNER_USERNAME = "feeeee";
 
 type CodeRow = {
   id: string;
@@ -59,8 +57,7 @@ export default function AdminPage() {
       .then((r) => r.json())
       .then((d) => {
         if (d.username) setUsername(d.username);
-        const isOwner = d.role === "admin" && d.username === OWNER_USERNAME;
-        if (!isOwner) {
+        if (d.role !== "admin") {
           router.replace("/dashboard");
           toast.error("Access denied");
           return;
@@ -118,7 +115,6 @@ export default function AdminPage() {
 
   const sidebar = [
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
     { name: "Customize", href: "/dashboard/customize", icon: Palette },
     { name: "Links", href: "/dashboard/links", icon: Link2 },
     { name: "Music", href: "/dashboard/music", icon: Music },
@@ -279,7 +275,6 @@ export default function AdminPage() {
                         <span className="text-xs text-yellow-400 ml-auto">Unused</span>
                       )}
 
-                      {/* Copy */}
                       <button
                         onClick={() => copyCode(c.code)}
                         className="h-8 w-8 rounded-lg grid place-items-center border border-white/10 hover:bg-white/5 text-zinc-400 hover:text-white transition"
@@ -288,7 +283,6 @@ export default function AdminPage() {
                         {copied === c.code ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                       </button>
 
-                      {/* Revoke (only if used) */}
                       {used && (
                         <button
                           onClick={() => handleRevoke(c.id, c.usedBy!.username)}
@@ -301,7 +295,6 @@ export default function AdminPage() {
                         </button>
                       )}
 
-                      {/* Delete */}
                       <button
                         onClick={() => handleDelete(c.id)}
                         className="h-8 w-8 rounded-lg grid place-items-center border border-red-500/30 hover:bg-red-500/10 text-red-400 transition"

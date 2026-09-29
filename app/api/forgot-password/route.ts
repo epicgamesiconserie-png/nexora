@@ -2,8 +2,31 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { Resend } from "resend";
+import { headers } from "next/headers";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+/**
+ * Determine the app's base URL in this priority order:
+ *   1. NEXT_PUBLIC_APP_URL env var (explicit override)
+ *   2. The incoming request's host header (works on smokez.lol, previews, localhost)
+ *   3. Fallback to localhost:3000 (dev only)
+ */
+async function getAppUrl(): Promise<string> {
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (envUrl) return envUrl.replace(/\/$/, "");
+
+  try {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") || h.get("host");
+    const proto = h.get("x-forwarded-proto") || "https";
+    if (host) return `${proto}://${host}`;
+  } catch {
+    // headers() may not be available in some contexts
+  }
+
+  return "http://localhost:3000";
+}
 
 export async function POST(req: Request) {
   try {
@@ -24,7 +47,7 @@ export async function POST(req: Request) {
       data: { userId: user.id, token, expiresAt },
     });
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const appUrl = await getAppUrl();
     const resetUrl = `${appUrl}/reset-password?token=${token}`;
 
     if (resend) {

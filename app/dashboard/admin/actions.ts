@@ -4,9 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-// 🔒 Hardcoded owner
-const OWNER_USERNAME = "feeeee";
-
 async function requireAdmin() {
   const session = await getSession();
   if (!session) return { error: "Not logged in" as const };
@@ -17,7 +14,7 @@ async function requireAdmin() {
   });
 
   if (!user) return { error: "Not authorized" as const };
-  if (user.role !== "admin" || user.username !== OWNER_USERNAME) {
+  if (user.role !== "admin") {
     return { error: "Not authorized" as const };
   }
 
@@ -77,7 +74,6 @@ export async function deletePremiumCode(
   }
 }
 
-// 🔻 REVOKE PREMIUM from the user who redeemed this code
 export async function revokePremium(
   codeId: string
 ): Promise<{ success: boolean; error?: string }> {
@@ -94,7 +90,6 @@ export async function revokePremium(
     if (!code.usedById) return { success: false, error: "Code was never used" };
 
     await prisma.$transaction([
-      // Remove premium from user
       prisma.user.update({
         where: { id: code.usedById },
         data: {
@@ -102,7 +97,6 @@ export async function revokePremium(
           premiumUntil: null,
         },
       }),
-      // Free up the code — remove "used" tracking so it can be reused
       prisma.premiumCode.update({
         where: { id: code.id },
         data: {

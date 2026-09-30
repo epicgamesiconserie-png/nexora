@@ -14,7 +14,7 @@ import {
   SiOnlyfans, SiKick, SiLitecoin, SiSolana, SiApplemusic,
 } from "react-icons/si";
 import {
-  LayoutDashboard, Link2, Palette, Music, BarChart3,
+  LayoutDashboard, Link2, Palette, Music,
   LogOut, Crown, Home, Award, X, Trash2, Pencil, Eye, GripVertical,
   ExternalLink,
 } from "lucide-react";
@@ -80,7 +80,6 @@ export default function LinksPage() {
 
   const sidebarLinks = [
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
     { name: "Customize", href: "/dashboard/customize", icon: Palette },
     { name: "Links", href: "/dashboard/links", icon: Link2 },
     { name: "Music", href: "/dashboard/music", icon: Music },

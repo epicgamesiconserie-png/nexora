@@ -74,7 +74,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const flakes = Array.from({ length: 60 }).map(() => ({
+    // Way fewer snowflakes (was 60)
+    const flakes = Array.from({ length: 15 }).map(() => ({
       left: Math.random() * 100,
       size: 6 + Math.random() * 10,
       delay: Math.random() * 10,

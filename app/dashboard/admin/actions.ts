@@ -4,226 +4,214 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
+/* ─── Auth helper ──────────────────────────────────────────── */
 async function requireAdmin() {
   const session = await getSession();
-  if (!session) return { error: "Not logged in" as const };
-
-  const user = await prisma.user.findUnique({
+  if (!session) return { ok: false as const, error: "Not logged in" };
+  const me = await prisma.user.findUnique({
     where: { id: session.userId },
     select: { id: true, role: true, username: true },
   });
-
-  if (!user) return { error: "Not authorized" as const };
-  if (user.role !== "admin") {
-    return { error: "Not authorized" as const };
+  if (!me || me.role !== "admin") {
+    return { ok: false as const, error: "Admin only" };
   }
-
-  return { user };
+  return { ok: true as const, me };
 }
 
-function generateCode(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const seg = (n: number) =>
-    Array.from({ length: n }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-  return `SMKZ-${seg(4)}-${seg(4)}`;
-}
+/* ─── Premium codes ────────────────────────────────────────── */
 
-export async function createPremiumCode(
-  durationDays: number
-): Promise<{ success: boolean; code?: string; error?: string }> {
+export async function listPremiumCodes(): Promise<
+  | { codes: Array<{
+      id: string;
+      code: string;
+      duration: number;
+      createdAt: string;
+      usedAt: string | null;
+      usedBy: { username: string } | null;
+      createdBy: { username: string } | null;
+    }> }
+  | { error: string }
+> {
   const auth = await requireAdmin();
-  if ("error" in auth) return { success: false, error: auth.error };
-
-  try {
-    let code = generateCode();
-    for (let i = 0; i < 5; i++) {
-      const existing = await prisma.premiumCode.findUnique({ where: { code } });
-      if (!existing) break;
-      code = generateCode();
-    }
-
-    const created = await prisma.premiumCode.create({
-      data: {
-        code,
-        duration: durationDays,
-        createdById: auth.user.id,
-      },
-    });
-
-    revalidatePath("/dashboard/admin");
-    return { success: true, code: created.code };
-  } catch (err) {
-    console.error("createPremiumCode error:", err);
-    return { success: false, error: "Database error" };
-  }
-}
-
-export async function deletePremiumCode(
-  codeId: string
-): Promise<{ success: boolean; error?: string }> {
-  const auth = await requireAdmin();
-  if ("error" in auth) return { success: false, error: auth.error };
-
-  try {
-    await prisma.premiumCode.delete({ where: { id: codeId } });
-    revalidatePath("/dashboard/admin");
-    return { success: true };
-  } catch (err) {
-    console.error("deletePremiumCode error:", err);
-    return { success: false, error: "Database error" };
-  }
-}
-
-export async function revokePremium(
-  codeId: string
-): Promise<{ success: boolean; error?: string }> {
-  const auth = await requireAdmin();
-  if ("error" in auth) return { success: false, error: auth.error };
-
-  try {
-    const code = await prisma.premiumCode.findUnique({
-      where: { id: codeId },
-      select: { id: true, usedById: true },
-    });
-
-    if (!code) return { success: false, error: "Code not found" };
-    if (!code.usedById) return { success: false, error: "Code was never used" };
-
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: code.usedById },
-        data: {
-          isPremium: false,
-          premiumUntil: null,
-        },
-      }),
-      prisma.premiumCode.update({
-        where: { id: code.id },
-        data: {
-          usedById: null,
-          usedAt: null,
-          expiresAt: null,
-        },
-      }),
-    ]);
-
-    revalidatePath("/dashboard/admin");
-    return { success: true };
-  } catch (err) {
-    console.error("revokePremium error:", err);
-    return { success: false, error: "Database error" };
-  }
-}
-
-export async function listPremiumCodes() {
-  const auth = await requireAdmin();
-  if ("error" in auth) return { error: auth.error };
+  if (!auth.ok) return { error: auth.error };
 
   const codes = await prisma.premiumCode.findMany({
     orderBy: { createdAt: "desc" },
+    take: 200,
     include: {
       usedBy: { select: { username: true } },
       createdBy: { select: { username: true } },
     },
   });
-  return { codes };
+
+  return {
+    codes: codes.map((c) => ({
+      id: c.id,
+      code: c.code,
+      duration: c.duration,
+      createdAt: c.createdAt.toISOString(),
+      usedAt: c.usedAt ? c.usedAt.toISOString() : null,
+      usedBy: c.usedBy ? { username: c.usedBy.username } : null,
+      createdBy: c.createdBy ? { username: c.createdBy.username } : null,
+    })),
+  };
 }
 
-// ============================================================
-// BADGE GRANT / REVOKE (admin only)
-// ============================================================
+export async function createPremiumCode(duration: number): Promise<{
+  success: boolean;
+  code?: string;
+  error?: string;
+}> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  const days = Math.max(1, Math.min(3650, Math.floor(duration || 30)));
+
+  // Random code: SMKZ-XXXX-XXXX
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const chunk = (n: number) =>
+    Array.from({ length: n })
+      .map(() => alphabet[Math.floor(Math.random() * alphabet.length)])
+      .join("");
+  const code = `SMKZ-${chunk(4)}-${chunk(4)}`;
+
+  try {
+    await prisma.premiumCode.create({
+      data: {
+        code,
+        duration: days,
+        createdById: auth.me.id,
+      },
+    });
+    revalidatePath("/dashboard/admin");
+    return { success: true, code };
+  } catch (err) {
+    console.error("createPremiumCode failed:", err);
+    return { success: false, error: "Failed to create code" };
+  }
+}
+
+export async function deletePremiumCode(id: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  try {
+    await prisma.premiumCode.delete({ where: { id } });
+    revalidatePath("/dashboard/admin");
+    return { success: true };
+  } catch (err) {
+    console.error("deletePremiumCode failed:", err);
+    return { success: false, error: "Failed to delete code" };
+  }
+}
+
+export async function revokePremium(codeId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  try {
+    const code = await prisma.premiumCode.findUnique({
+      where: { id: codeId },
+      select: { usedById: true },
+    });
+    if (!code || !code.usedById) {
+      return { success: false, error: "No user on this code" };
+    }
+
+    await prisma.user.update({
+      where: { id: code.usedById },
+      data: { isPremium: false, premiumUntil: null },
+    });
+
+    revalidatePath("/dashboard/admin");
+    return { success: true };
+  } catch (err) {
+    console.error("revokePremium failed:", err);
+    return { success: false, error: "Failed to revoke premium" };
+  }
+}
+
+/* ─── Badges ───────────────────────────────────────────────── */
 
 export async function grantBadgeToUser(
-  targetUsername: string,
+  username: string,
   badgeId: string
 ): Promise<{ success: boolean; error?: string }> {
   const auth = await requireAdmin();
-  if ("error" in auth) return { success: false, error: auth.error };
-
-  if (!targetUsername || !badgeId) {
-    return { success: false, error: "Missing username or badge" };
-  }
+  if (!auth.ok) return { success: false, error: auth.error };
 
   try {
-    const targetUser = await prisma.user.findUnique({
-      where: { usernameNorm: targetUsername.trim().toLowerCase() },
-      select: {
-        id: true,
-        username: true,
-        profile: { select: { badges: true, unlockedBadges: true } },
-      },
+    const user = await prisma.user.findUnique({
+      where: { usernameNorm: username.trim().toLowerCase() },
+      select: { id: true, profile: { select: { id: true, badges: true } } },
     });
+    if (!user) return { success: false, error: "No user with that username" };
+    if (!user.profile) return { success: false, error: "User has no profile" };
 
-    if (!targetUser) {
-      return { success: false, error: `No user named @${targetUsername}` };
+    const current = user.profile.badges ?? [];
+    if (current.includes(badgeId)) {
+      return { success: false, error: "User already has this badge" };
     }
 
-    const currentClaimed = targetUser.profile?.badges ?? [];
-    const currentUnlocked = targetUser.profile?.unlockedBadges ?? [];
-
-    const newClaimed = currentClaimed.includes(badgeId)
-      ? currentClaimed
-      : [...currentClaimed, badgeId];
-    const newUnlocked = currentUnlocked.includes(badgeId)
-      ? currentUnlocked
-      : [...currentUnlocked, badgeId];
-
-    await prisma.profile.upsert({
-      where: { userId: targetUser.id },
-      update: { badges: newClaimed, unlockedBadges: newUnlocked },
-      create: { userId: targetUser.id, badges: newClaimed, unlockedBadges: newUnlocked },
+    await prisma.profile.update({
+      where: { id: user.profile.id },
+      data: { badges: [...current, badgeId] },
     });
 
     revalidatePath("/dashboard/admin");
-    revalidatePath("/u/[username]", "page");
     return { success: true };
   } catch (err) {
-    console.error("grantBadgeToUser error:", err);
-    return { success: false, error: "Database error" };
+    console.error("grantBadgeToUser failed:", err);
+    return { success: false, error: "Failed to grant badge" };
   }
 }
 
-export async function revokeBadgeFromUser(
-  targetUsername: string,
-  badgeId: string
-): Promise<{ success: boolean; error?: string }> {
-  const auth = await requireAdmin();
-  if ("error" in auth) return { success: false, error: auth.error };
+/* ─── Delete user ──────────────────────────────────────────── */
 
-  if (!targetUsername || !badgeId) {
-    return { success: false, error: "Missing username or badge" };
+/**
+ * Delete a user account by username. Wipes their profile, links,
+ * socials, music, sessions, password resets, and analytics rows.
+ * Refuses to delete the calling admin themselves.
+ */
+export async function deleteUserAccount(username: string): Promise<{
+  success: boolean;
+  error?: string;
+  deletedUsername?: string;
+}> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  const target = await prisma.user.findUnique({
+    where: { usernameNorm: username.trim().toLowerCase() },
+    select: { id: true, username: true },
+  });
+  if (!target) {
+    return { success: false, error: "No user with that username" };
+  }
+
+  if (target.id === auth.me.id) {
+    return { success: false, error: "You cannot delete your own account" };
   }
 
   try {
-    const targetUser = await prisma.user.findUnique({
-      where: { usernameNorm: targetUsername.trim().toLowerCase() },
-      select: {
-        id: true,
-        profile: { select: { badges: true, unlockedBadges: true } },
-      },
-    });
+    // Analytics has no FK relation, so wipe it manually first
+    await prisma.analytics.deleteMany({ where: { userId: target.id } });
 
-    if (!targetUser) {
-      return { success: false, error: `No user named @${targetUsername}` };
-    }
-
-    const currentClaimed = targetUser.profile?.badges ?? [];
-    const currentUnlocked = targetUser.profile?.unlockedBadges ?? [];
-
-    await prisma.profile.upsert({
-      where: { userId: targetUser.id },
-      update: {
-        badges: currentClaimed.filter((b) => b !== badgeId),
-        unlockedBadges: currentUnlocked.filter((b) => b !== badgeId),
-      },
-      create: { userId: targetUser.id },
-    });
+    // Everything else cascades via onDelete: Cascade on the User relation
+    await prisma.user.delete({ where: { id: target.id } });
 
     revalidatePath("/dashboard/admin");
-    revalidatePath("/u/[username]", "page");
-    return { success: true };
+    revalidatePath("/leaderboard");
+
+    return { success: true, deletedUsername: target.username };
   } catch (err) {
-    console.error("revokeBadgeFromUser error:", err);
-    return { success: false, error: "Database error" };
+    console.error("deleteUserAccount failed:", err);
+    return { success: false, error: "Database error while deleting user" };
   }
 }

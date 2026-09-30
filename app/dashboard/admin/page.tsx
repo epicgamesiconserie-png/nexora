@@ -10,13 +10,14 @@ import {
   listPremiumCodes,
   revokePremium,
   grantBadgeToUser,
+  deleteUserAccount,
 } from "./actions";
 import { BADGES } from "@/lib/badges";
 import { BadgeIcon } from "@/components/BadgeIcon";
 import {
   LayoutDashboard, Link2, Palette, Music,
   LogOut, Crown, Home, Award, Plus, Trash2, Copy, Check,
-  ExternalLink, ShieldCheck, Ticket, Ban,
+  ExternalLink, ShieldCheck, Ticket, Ban, UserX, AlertTriangle,
 } from "lucide-react";
 
 type CodeRow = {
@@ -47,6 +48,11 @@ export default function AdminPage() {
   const [badgeUsername, setBadgeUsername] = useState("");
   const [badgeId, setBadgeId] = useState(BADGES[0]?.id ?? "");
   const [granting, setGranting] = useState(false);
+
+  // Delete user state
+  const [deleteUsername, setDeleteUsername] = useState("");
+  const [confirmUsername, setConfirmUsername] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -130,6 +136,38 @@ export default function AdminPage() {
     }
   }
 
+  async function handleDeleteUser() {
+    const target = deleteUsername.trim();
+    const confirmMatch = confirmUsername.trim();
+    if (!target) {
+      toast.error("Enter a username");
+      return;
+    }
+    if (target.toLowerCase() !== confirmMatch.toLowerCase()) {
+      toast.error("Confirmation does not match");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Permanently delete @${target}? This wipes their account, profile, links, socials, music, and sessions. This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    setDeleting(true);
+    const res = await deleteUserAccount(target);
+    setDeleting(false);
+
+    if (res.success) {
+      toast.success(`Deleted @${res.deletedUsername}`);
+      setDeleteUsername("");
+      setConfirmUsername("");
+    } else {
+      toast.error(res.error || "Failed to delete user");
+    }
+  }
+
   function copyCode(code: string) {
     navigator.clipboard.writeText(code);
     setCopied(code);
@@ -160,6 +198,10 @@ export default function AdminPage() {
   }
 
   if (!authorized) return null;
+
+  const confirmMatches =
+    deleteUsername.trim() !== "" &&
+    deleteUsername.trim().toLowerCase() === confirmUsername.trim().toLowerCase();
 
   return (
     <div className="flex min-h-screen bg-black text-white">
@@ -216,7 +258,7 @@ export default function AdminPage() {
               Admin Panel
             </h1>
             <p className="text-sm text-zinc-500 mt-2">
-              Generate premium codes and manage user badges.
+              Generate premium codes, manage user badges, and delete accounts.
             </p>
           </div>
 
@@ -305,7 +347,6 @@ export default function AdminPage() {
               </button>
             </div>
 
-            {/* Preview of selected badge */}
             <div className="mt-4 flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
               {(() => {
                 const b = BADGES.find((x) => x.id === badgeId);
@@ -325,6 +366,72 @@ export default function AdminPage() {
 
             <p className="text-xs text-zinc-500 mt-3">
               Typing a username and picking a badge will give it to that user. They&apos;ll see it immediately on their profile.
+            </p>
+          </div>
+
+          {/* Delete User */}
+          <div
+            className="rounded-2xl p-6"
+            style={{
+              background: "rgba(127, 29, 29, 0.06)",
+              border: "1px solid rgba(239, 68, 68, 0.25)",
+            }}
+          >
+            <h2 className="text-lg font-bold mb-1 flex items-center gap-2 text-red-300">
+              <UserX className="h-5 w-5" />
+              Delete User
+            </h2>
+            <p className="text-xs text-red-200/60 mb-5 flex items-start gap-2">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+              <span>
+                Permanently deletes the account. Wipes their profile, links, socials, music, sessions, and analytics. This cannot be undone.
+              </span>
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-2">
+                  Username to delete
+                </label>
+                <input
+                  type="text"
+                  value={deleteUsername}
+                  onChange={(e) => setDeleteUsername(e.target.value)}
+                  placeholder="theirs"
+                  className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm outline-none focus:border-red-500/50 placeholder:text-white/30"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-2">
+                  Retype to confirm
+                </label>
+                <input
+                  type="text"
+                  value={confirmUsername}
+                  onChange={(e) => setConfirmUsername(e.target.value)}
+                  placeholder={deleteUsername || "theirs"}
+                  className={`h-11 w-full rounded-xl border bg-white/[0.03] px-4 text-sm outline-none placeholder:text-white/30 ${
+                    confirmUsername === ""
+                      ? "border-white/10 focus:border-white/30"
+                      : confirmMatches
+                      ? "border-emerald-500/50 focus:border-emerald-500/70"
+                      : "border-red-500/50 focus:border-red-500/70"
+                  }`}
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleDeleteUser}
+              disabled={deleting || !confirmMatches}
+              className="flex items-center gap-2 h-11 px-5 rounded-xl bg-red-500 hover:bg-red-400 text-white font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <UserX className="h-4 w-4" />
+              {deleting ? "Deleting..." : "Delete account permanently"}
+            </button>
+
+            <p className="text-xs text-zinc-500 mt-3">
+              You cannot delete your own account while logged in.
             </p>
           </div>
 

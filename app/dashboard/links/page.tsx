@@ -89,6 +89,11 @@ export default function LinksPage() {
   ];
 
   function openAddModal(platform: Platform) {
+    const alreadyAdded = socials.some((s) => s.platform === platform.key);
+    if (alreadyAdded) {
+      toast.error(`You already have a ${platform.name} link`);
+      return;
+    }
     setOpenPlatform(platform);
     setEditingSocial(null);
     setUrlValue("");

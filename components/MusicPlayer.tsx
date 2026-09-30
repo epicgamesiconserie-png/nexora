@@ -25,34 +25,46 @@ export function MusicPlayer({
     audio.loop = true;
     audio.muted = true;
 
+    // Try to start muted so the player shows "playing" immediately.
     audio.play().then(() => {
       setPlaying(true);
       setMuted(true);
     }).catch(() => {});
 
-    const handleFirstInteraction = () => {
+    // Unmute on the FIRST user interaction of any kind.
+    // Listening to more events means the audio actually unmutes as
+    // soon as the visitor does anything, instead of only on click.
+    const unmute = () => {
       if (started) return;
       setStarted(true);
       audio.muted = false;
-      audio.volume = volume;
+      audio.volume = volume > 0 ? volume : 0.5;
       setMuted(false);
       audio.play().catch(() => {});
       setPlaying(true);
-
-      window.removeEventListener("click", handleFirstInteraction);
-      window.removeEventListener("keydown", handleFirstInteraction);
-      window.removeEventListener("touchstart", handleFirstInteraction);
+      removeListeners();
     };
 
-    window.addEventListener("click", handleFirstInteraction);
-    window.addEventListener("keydown", handleFirstInteraction);
-    window.addEventListener("touchstart", handleFirstInteraction);
-
-    return () => {
-      window.removeEventListener("click", handleFirstInteraction);
-      window.removeEventListener("keydown", handleFirstInteraction);
-      window.removeEventListener("touchstart", handleFirstInteraction);
+    const removeListeners = () => {
+      window.removeEventListener("click", unmute);
+      window.removeEventListener("keydown", unmute);
+      window.removeEventListener("touchstart", unmute);
+      window.removeEventListener("pointerdown", unmute);
+      window.removeEventListener("scroll", unmute);
+      window.removeEventListener("mousemove", unmute);
+      window.removeEventListener("wheel", unmute);
     };
+
+    window.addEventListener("click", unmute);
+    window.addEventListener("keydown", unmute);
+    window.addEventListener("touchstart", unmute);
+    window.addEventListener("pointerdown", unmute);
+    window.addEventListener("scroll", unmute, { passive: true });
+    window.addEventListener("mousemove", unmute, { passive: true });
+    window.addEventListener("wheel", unmute, { passive: true });
+
+    return removeListeners;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [volume, started]);
 
   function togglePlay() {
@@ -62,6 +74,7 @@ export function MusicPlayer({
       audio.pause();
       setPlaying(false);
     } else {
+      // If unmuted plays are blocked, at least attempt and don't crash
       audio.play().catch(() => {});
       setPlaying(true);
     }
@@ -117,7 +130,6 @@ export function MusicPlayer({
           gap: "4px",
         }}
       >
-        {/* Play/pause */}
         <button
           onClick={togglePlay}
           className="h-10 w-10 rounded-xl grid place-items-center transition hover:bg-white/5 shrink-0"
@@ -130,7 +142,6 @@ export function MusicPlayer({
           )}
         </button>
 
-        {/* Mute */}
         <button
           onClick={toggleMute}
           className="h-10 w-10 rounded-xl grid place-items-center transition hover:bg-white/5 shrink-0"
@@ -139,7 +150,6 @@ export function MusicPlayer({
           <VolumeIcon className="h-5 w-5 text-white" />
         </button>
 
-        {/* Slider — smooth grid-based expansion */}
         <div
           className="grid transition-[grid-template-columns] duration-300 ease-out items-center overflow-hidden"
           style={{

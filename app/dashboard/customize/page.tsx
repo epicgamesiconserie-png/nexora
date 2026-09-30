@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Cropper from "react-easy-crop";
 import { toast } from "sonner";
 import {
@@ -22,49 +22,54 @@ import {
   MapPin, AlignLeft, Save, Sparkles, Check, Trash2,
   ExternalLink, MousePointer2, Snowflake, Star, Heart,
   Droplet, Zap, Flame, Music2, Film, User,
-  Type, Droplets, Loader2, ShieldCheck, Image as ImageIcon,
+  Type, Droplets, Loader2, ShieldCheck, Image as ImageIcon, Lock,
 } from "lucide-react";
 
 type UploadType = "background" | "backgroundVideo" | "audio" | "avatar";
 type AvatarStyle = "circle" | "full";
 
-const ANIMATED_TITLES: { value: AnimatedTitleStyle; label: string; description: string }[] = [
+const ANIMATED_TITLES: { value: AnimatedTitleStyle; label: string; description: string; premium?: boolean }[] = [
   { value: "none",       label: "None",        description: "Plain text" },
   { value: "glow",       label: "Glow",        description: "Pulsing white glow" },
   { value: "gradient",   label: "Gradient",    description: "Purple to pink shift" },
   { value: "rainbow",    label: "Rainbow",     description: "Full color cycle" },
-  { value: "typewriter", label: "Typewriter",  description: "Typing animation" },
+  { value: "typewriter", label: "Typewriter",  description: "Typing animation", premium: true },
   { value: "wave",       label: "Wave",        description: "Letters bounce" },
   { value: "shuffle",    label: "Shuffle",     description: "Wiggle shake" },
   { value: "fuzzy",      label: "Fuzzy",       description: "Blur pulse" },
   { value: "flicker",    label: "Flicker",     description: "Neon flicker" },
 ];
 
-const MOUSE_TRAILS: { value: MouseTrailStyle; label: string; description: string; Icon: React.ElementType }[] = [
+const MOUSE_TRAILS: { value: MouseTrailStyle; label: string; description: string; Icon: React.ElementType; premium?: boolean }[] = [
   { value: "none",      label: "None",         description: "No trail",              Icon: X },
-  { value: "snow",      label: "Snow",         description: "White particles fall",  Icon: Snowflake },
+  { value: "snow",      label: "Snow",         description: "White particles fall",  Icon: Snowflake, premium: true },
   { value: "sparkle",   label: "Sparkle",      description: "Golden flashes",        Icon: Sparkles },
   { value: "cursor",    label: "Cursor Ghost", description: "Fading cursors",        Icon: MousePointer2 },
-  { value: "stars",     label: "Stars",        description: "Yellow stars",          Icon: Star },
+  { value: "stars",     label: "Stars",        description: "Yellow stars",          Icon: Star, premium: true },
   { value: "hearts",    label: "Hearts",       description: "Rising hearts",         Icon: Heart },
   { value: "bubbles",   label: "Bubbles",      description: "Blue bubbles",          Icon: Droplet },
   { value: "lightning", label: "Lightning",    description: "Electric bolts",        Icon: Zap },
   { value: "fire",      label: "Fire",         description: "Rising flames",         Icon: Flame },
-  { value: "music",     label: "Music",        description: "Music notes",           Icon: Music2 },
+  { value: "music",     label: "Music",        description: "Music notes",           Icon: Music2, premium: true },
   { value: "rainbow",   label: "Rainbow",      description: "Rainbow particles",     Icon: Sparkles },
   { value: "confetti",  label: "Confetti",     description: "Colorful confetti",     Icon: Sparkles },
 ];
 
 const FONTS = [
-  { value: "Inter",      class: "font-inter",      label: "Inter" },
-  { value: "Poppins",    class: "font-poppins",    label: "Poppins" },
-  { value: "Montserrat", class: "font-montserrat", label: "Montserrat" },
-  { value: "Playfair",   class: "font-playfair",   label: "Playfair Display" },
-  { value: "Roboto",     class: "font-roboto",     label: "Roboto" },
-  { value: "Lora",       class: "font-lora",       label: "Lora" },
-  { value: "Space",      class: "font-space",      label: "Space Grotesk" },
-  { value: "DM",         class: "font-dm",         label: "DM Sans" },
-  { value: "Nunito",     class: "font-nunito",     label: "Nunito" },
+  { value: "Inter",      class: "font-inter",      label: "Inter",             sample: "Aa" },
+  { value: "Poppins",    class: "font-poppins",    label: "Poppins",           sample: "Aa" },
+  { value: "Montserrat", class: "font-montserrat", label: "Montserrat",        sample: "Aa" },
+  { value: "Playfair",   class: "font-playfair",   label: "Playfair Display",  sample: "Aa" },
+  { value: "Roboto",     class: "font-roboto",     label: "Roboto",            sample: "Aa" },
+  { value: "Lora",       class: "font-lora",       label: "Lora",              sample: "Aa" },
+  { value: "Space",      class: "font-space",      label: "Space Grotesk",     sample: "Aa" },
+  { value: "DM",         class: "font-dm",         label: "DM Sans",           sample: "Aa" },
+  { value: "Nunito",     class: "font-nunito",     label: "Nunito",            sample: "Aa" },
+  { value: "Bebas",      class: "font-bebas",      label: "Bebas Neue",        sample: "AA" },
+  { value: "Cinzel",     class: "font-cinzel",     label: "Cinzel",            sample: "Aa" },
+  { value: "Orbitron",   class: "font-orbitron",   label: "Orbitron",          sample: "Aa" },
+  { value: "Bungee",     class: "font-bungee",     label: "Bungee",            sample: "Aa" },
+  { value: "Fraktur",    class: "font-fraktur",    label: "Fraktur",           sample: "Aa" },
 ];
 
 function isTransparencyCapable(file: File): boolean {
@@ -125,9 +130,11 @@ async function getCroppedImg(
 
 export default function CustomizePage() {
   const pathname = usePathname();
+  const router = useRouter();
 
   const [username, setUsername] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const [uploads, setUploads] = useState<Record<UploadType, string | null>>({
     background: null, backgroundVideo: null, audio: null, avatar: null,
   });
@@ -178,6 +185,7 @@ export default function CustomizePage() {
       .then((data) => {
         if (data.username) setUsername(data.username);
         if (data.role === "admin") setIsAdmin(true);
+        if (data.isPremium) setIsPremium(true);
         if (data.profile) {
           setBio(data.profile.bio || "");
           setProfileFont(data.profile.font || "Inter");
@@ -221,6 +229,11 @@ export default function CustomizePage() {
   ];
 
   const handleBoxClick = (type: UploadType) => {
+    if (type === "backgroundVideo" && !isPremium) {
+      toast.error("Background video is a Premium feature");
+      router.push("/dashboard/premium");
+      return;
+    }
     currentUploadType.current = type;
     fileInputRef.current?.click();
   };
@@ -249,6 +262,7 @@ export default function CustomizePage() {
     }
     await uploadFile(file, type);
   };
+
   async function uploadFile(file: Blob, type: UploadType, filename?: string) {
     setUploading(type);
     try {
@@ -429,15 +443,16 @@ export default function CustomizePage() {
     else setProfileOpacity(5);
   }
 
-  const boxes: { type: UploadType; label: string; Icon: React.ElementType; hint: string }[] = [
+  const boxes: { type: UploadType; label: string; Icon: React.ElementType; hint: string; premium?: boolean }[] = [
     { type: "background",      label: "Background", Icon: ImageIcon, hint: "Image" },
-    { type: "backgroundVideo", label: "BG Video",   Icon: Film,      hint: "MP4" },
+    { type: "backgroundVideo", label: "BG Video",   Icon: Film,      hint: "MP4", premium: true },
     { type: "audio",           label: "Audio",      Icon: Music,     hint: "MP3" },
     { type: "avatar",          label: "Avatar",     Icon: User,      hint: "Image" },
   ];
 
   const currentTrail = MOUSE_TRAILS.find((t) => t.value === mouseTrail);
   const currentFont = FONTS.find((f) => f.value === profileFont) || FONTS[0];
+
   return (
     <div className="flex min-h-screen bg-black text-white">
       <input
@@ -509,28 +524,37 @@ export default function CustomizePage() {
               {boxes.map((box) => {
                 const isUploaded = uploads[box.type];
                 const isUploading = uploading === box.type;
+                const locked = box.premium && !isPremium;
                 return (
                   <button
                     key={box.type}
                     onClick={() => handleBoxClick(box.type)}
                     disabled={isUploading}
-                    className={`flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-lg border transition text-center ${
-                      isUploaded
+                    className={`flex flex-col items-center justify-center gap-1.5 py-3 px-2 rounded-lg border transition text-center relative ${
+                      locked
+                        ? "border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10"
+                        : isUploaded
                         ? "border-green-500/50 bg-green-500/5"
                         : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
                     } ${isUploading ? "opacity-50 cursor-wait" : ""}`}
                   >
+                    {locked && (
+                      <span className="absolute top-1.5 right-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/20 border border-yellow-500/40">
+                        <Lock className="h-2.5 w-2.5 text-yellow-400" />
+                        <span className="text-[8px] font-bold text-yellow-400 uppercase tracking-wider">Premium</span>
+                      </span>
+                    )}
                     {isUploading ? (
                       <Loader2 className="h-5 w-5 text-zinc-400 animate-spin" />
                     ) : (
                       <box.Icon
-                        className={`h-5 w-5 ${isUploaded ? "text-green-400" : "text-zinc-400"}`}
+                        className={`h-5 w-5 ${locked ? "text-yellow-400/70" : isUploaded ? "text-green-400" : "text-zinc-400"}`}
                         strokeWidth={1.5}
                       />
                     )}
-                    <span className="text-[11px] font-semibold leading-tight">{box.label}</span>
+                    <span className={`text-[11px] font-semibold leading-tight ${locked ? "text-yellow-100/80" : ""}`}>{box.label}</span>
                     <span className="text-[9px] text-zinc-500">
-                      {isUploading ? "..." : isUploaded ? "✓ Done" : box.hint}
+                      {isUploading ? "..." : locked ? "Premium only" : isUploaded ? "✓ Done" : box.hint}
                     </span>
                   </button>
                 );
@@ -759,6 +783,7 @@ export default function CustomizePage() {
           </section>
         </div>
       </main>
+
       {animatedTitleModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
@@ -775,18 +800,41 @@ export default function CustomizePage() {
             <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
               {ANIMATED_TITLES.map((option) => {
                 const selected = animatedTitle === option.value;
+                const locked = option.premium && !isPremium;
                 return (
-                  <button key={option.value} onClick={() => setAnimatedTitle(option.value)}
+                  <button key={option.value} onClick={() => {
+                    if (locked) {
+                      toast.error("Typewriter is a Premium feature");
+                      router.push("/dashboard/premium");
+                      return;
+                    }
+                    setAnimatedTitle(option.value);
+                  }}
                     className={`relative flex flex-col items-start gap-3 p-5 rounded-xl border text-left transition ${
-                      selected ? "border-purple-500 bg-purple-500/10"
-                              : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
+                      locked
+                        ? "border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10"
+                        : selected
+                        ? "border-purple-500 bg-purple-500/10"
+                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
                     }`}>
-                    {selected && <Check className="absolute top-3 right-3 h-4 w-4 text-purple-400" />}
-                    <span className="text-xs uppercase tracking-wider text-zinc-500 font-semibold">{option.label}</span>
+                    {selected && !locked && <Check className="absolute top-3 right-3 h-4 w-4 text-purple-400" />}
+                    {locked && (
+                      <span className="absolute top-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/20 border border-yellow-500/40">
+                        <Lock className="h-2.5 w-2.5 text-yellow-400" />
+                        <span className="text-[8px] font-bold text-yellow-400 uppercase tracking-wider">Premium</span>
+                      </span>
+                    )}
+                    <span className={`text-xs uppercase tracking-wider font-semibold ${locked ? "text-yellow-200/70" : "text-zinc-500"}`}>{option.label}</span>
                     <div className="py-3 min-h-[48px] flex items-center w-full overflow-hidden">
-                      <AnimatedTitle text="@username" style={option.value} className="text-xl font-bold text-white" />
+                      {locked ? (
+                        <span className="text-xl font-bold text-white/40">@username</span>
+                      ) : (
+                        <AnimatedTitle text="@username" style={option.value} className="text-xl font-bold text-white" />
+                      )}
                     </div>
-                    <span className="text-xs text-zinc-500">{option.description}</span>
+                    <span className={`text-xs ${locked ? "text-yellow-200/50" : "text-zinc-500"}`}>
+                      {locked ? "Unlock with Premium" : option.description}
+                    </span>
                   </button>
                 );
               })}
@@ -817,26 +865,45 @@ export default function CustomizePage() {
             <div className="p-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[70vh] overflow-y-auto">
               {MOUSE_TRAILS.map((option) => {
                 const selected = mouseTrail === option.value;
+                const locked = option.premium && !isPremium;
                 const Icon = option.Icon;
                 return (
                   <button
                     key={option.value}
-                    onClick={() => setMouseTrail(option.value)}
+                    onClick={() => {
+                      if (locked) {
+                        toast.error(`${option.label} is a Premium feature`);
+                        router.push("/dashboard/premium");
+                        return;
+                      }
+                      setMouseTrail(option.value);
+                    }}
                     className={`relative flex flex-col rounded-xl border overflow-hidden text-center transition ${
-                      selected ? "border-purple-500 bg-purple-500/[0.07]"
-                              : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
+                      locked
+                        ? "border-yellow-500/30 bg-yellow-500/[0.04] hover:bg-yellow-500/[0.09]"
+                        : selected
+                        ? "border-purple-500 bg-purple-500/[0.07]"
+                        : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
                     }`}
                   >
-                    {selected && <Check className="absolute top-2 right-2 h-4 w-4 text-purple-400 z-10" />}
-                    <div className="relative w-full h-32 bg-black/40 overflow-hidden">
+                    {selected && !locked && <Check className="absolute top-2 right-2 h-4 w-4 text-purple-400 z-10" />}
+                    {locked && (
+                      <span className="absolute top-2 right-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/20 border border-yellow-500/40">
+                        <Lock className="h-2.5 w-2.5 text-yellow-400" />
+                        <span className="text-[8px] font-bold text-yellow-400 uppercase tracking-wider">Premium</span>
+                      </span>
+                    )}
+                    <div className={`relative w-full h-32 bg-black/40 overflow-hidden ${locked ? "opacity-40" : ""}`}>
                       <MouseTrailPreview style={option.value} color={accentColor} />
                     </div>
                     <div className="p-3 border-t border-white/5">
                       <div className="flex items-center justify-center gap-1.5">
-                        <Icon className="h-3.5 w-3.5 text-zinc-400" />
-                        <span className="text-xs font-semibold text-white">{option.label}</span>
+                        <Icon className={`h-3.5 w-3.5 ${locked ? "text-yellow-400/70" : "text-zinc-400"}`} />
+                        <span className={`text-xs font-semibold ${locked ? "text-yellow-100/80" : "text-white"}`}>{option.label}</span>
                       </div>
-                      <div className="text-[10px] text-zinc-500 mt-0.5">{option.description}</div>
+                      <div className={`text-[10px] mt-0.5 ${locked ? "text-yellow-200/50" : "text-zinc-500"}`}>
+                        {locked ? "Unlock with Premium" : option.description}
+                      </div>
                     </div>
                   </button>
                 );
@@ -883,7 +950,9 @@ export default function CustomizePage() {
                     <div className={`py-3 min-h-[60px] flex items-center w-full overflow-hidden ${font.class}`}>
                       <span className="text-2xl font-bold text-white">@username</span>
                     </div>
-                    <span className="text-xs text-zinc-500">The quick brown fox jumps over</span>
+                    <div className={`text-sm text-zinc-400 ${font.class}`}>
+                      The quick brown fox jumps over
+                    </div>
                   </button>
                 );
               })}

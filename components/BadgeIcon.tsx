@@ -3,7 +3,7 @@
 import {
   Shield, Gem, CheckCircle2, Coins, Gift, Image as ImageIcon,
   Rocket, Bug, Crown, Trophy, Medal, Sun, Snowflake, Sparkles,
-  Award, Zap,
+  Award, Zap, Heart, Flame, Star,
 } from "lucide-react";
 import type { BadgeIcon as BadgeIconName } from "@/lib/badges";
 
@@ -24,6 +24,9 @@ const ICON_MAP: Record<BadgeIconName, React.ComponentType<{ className?: string; 
   sparkles: Sparkles,
   award: Award,
   zap: Zap,
+  heart: Heart,
+  flame: Flame,
+  star: Star,
 };
 
 export function BadgeIcon({

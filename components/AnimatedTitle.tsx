@@ -1,10 +1,46 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 export type AnimatedTitleStyle =
   | "none" | "glow" | "gradient" | "rainbow"
-  | "typewriter" | "wave" | "shuffle" | "fuzzy" | "flicker";
+  | "typewriter" | "wave" | "shuffle" | "fuzzy" | "flicker"
+  | "glitch" | "neon" | "shimmer";
+
+function TypewriterText({ text }: { text: string }) {
+  const [displayed, setDisplayed] = useState("");
+  const [phase, setPhase] = useState<"typing" | "pausing" | "deleting">("typing");
+
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>;
+    if (phase === "typing") {
+      if (displayed.length < text.length) {
+        t = setTimeout(() => setDisplayed(text.slice(0, displayed.length + 1)), 70);
+      } else {
+        t = setTimeout(() => setPhase("pausing"), 1500);
+      }
+    } else if (phase === "pausing") {
+      t = setTimeout(() => setPhase("deleting"), 400);
+    } else {
+      if (displayed.length > 0) {
+        t = setTimeout(() => setDisplayed(text.slice(0, displayed.length - 1)), 35);
+      } else {
+        t = setTimeout(() => setPhase("typing"), 300);
+      }
+    }
+    return () => clearTimeout(t);
+  }, [displayed, phase, text]);
+
+  return (
+    <span className="inline-flex items-center">
+      <span>{displayed}</span>
+      <span
+        className="inline-block w-[2px] h-[1em] ml-[2px] bg-current align-middle animate-pulse"
+        aria-hidden="true"
+      />
+    </span>
+  );
+}
 
 export function AnimatedTitle({
   text, style, className = "", style2 = {},
@@ -29,7 +65,28 @@ export function AnimatedTitle({
     );
   }
   if (style === "typewriter") {
-    return <span className={`effect-typewriter ${className}`} style={style2}>{text}</span>;
+    return (
+      <span className={className} style={style2}>
+        <TypewriterText text={text} />
+      </span>
+    );
+  }
+  if (style === "glitch") {
+    return (
+      <span className={`effect-glitch ${className}`} style={style2} data-text={text}>
+        {text}
+      </span>
+    );
+  }
+  if (style === "shimmer") {
+    return (
+      <span
+        className={`effect-shimmer ${className}`}
+        style={style2}
+      >
+        {text}
+      </span>
+    );
   }
   return <span className={`effect-${style} ${className}`} style={style2}>{text}</span>;
 }

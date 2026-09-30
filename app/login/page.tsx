@@ -4,6 +4,76 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { SmokeLogoWordmark } from "@/components/SmokeLogo";
 
+/* ─── Smoke grenade SVG — white version for the login page ─── */
+function SmokeGrenade({
+  size = 60,
+  rotation = 0,
+  opacity = 0.15,
+  color = "#ffffff",
+}: {
+  size?: number;
+  rotation?: number;
+  opacity?: number;
+  color?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ transform: `rotate(${rotation}deg)`, opacity }}
+    >
+      {/* Smoke puff */}
+      <g fill={color} opacity="0.85">
+        <circle cx="13" cy="19" r="3.2" />
+        <circle cx="19" cy="15" r="4.2" />
+        <circle cx="25" cy="13" r="3.4" />
+        <circle cx="17" cy="22" r="2.4" />
+        <circle cx="22" cy="19" r="2.8" />
+      </g>
+
+      {/* Ring pull */}
+      <circle
+        cx="44"
+        cy="14"
+        r="4"
+        stroke={color}
+        strokeWidth="1.6"
+        fill="none"
+      />
+
+      {/* Cap plate */}
+      <path d="M30 20 L42 20 L43 25 L29 25 Z" fill={color} opacity="0.9" />
+
+      {/* Body */}
+      <path
+        d="M29 25 L43 25 L44 52 L28 52 Z"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+
+      {/* Dots */}
+      <g fill={color} opacity="0.9">
+        <circle cx="33" cy="30" r="1.1" />
+        <circle cx="39" cy="30" r="1.1" />
+        <circle cx="33" cy="35" r="1.1" />
+        <circle cx="39" cy="35" r="1.1" />
+        <circle cx="33" cy="40" r="1.1" />
+        <circle cx="39" cy="40" r="1.1" />
+        <circle cx="33" cy="45" r="1.1" />
+        <circle cx="39" cy="45" r="1.1" />
+      </g>
+
+      {/* Base plate */}
+      <path d="M26 52 L46 52 L46 56 L26 56 Z" fill={color} opacity="0.85" />
+    </svg>
+  );
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [identifier, setIdentifier] = useState("");
@@ -30,8 +100,39 @@ export default function LoginPage() {
     router.refresh();
   };
 
+  /* Scattered white grenades — deterministic layout */
+  const grenades: {
+    top: string;
+    left: string;
+    size: number;
+    rotation: number;
+    opacity: number;
+  }[] = [
+    { top: "6%",   left: "4%",   size: 70,  rotation: -22, opacity: 0.08 },
+    { top: "10%",  left: "88%",  size: 55,  rotation: 28,  opacity: 0.07 },
+    { top: "26%",  left: "2%",   size: 90,  rotation: 15,  opacity: 0.06 },
+    { top: "34%",  left: "94%",  size: 65,  rotation: -40, opacity: 0.08 },
+    { top: "52%",  left: "5%",   size: 80,  rotation: 35,  opacity: 0.06 },
+    { top: "66%",  left: "92%",  size: 100, rotation: -10, opacity: 0.07 },
+    { top: "82%",  left: "3%",   size: 60,  rotation: 48,  opacity: 0.08 },
+    { top: "90%",  left: "86%",  size: 75,  rotation: -30, opacity: 0.06 },
+  ];
+
   return (
     <main className="relative min-h-screen bg-black text-white overflow-hidden flex items-center justify-center">
+      {/* Small scattered white grenades — texture layer */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
+        {grenades.map((g, i) => (
+          <div key={i} className="absolute" style={{ top: g.top, left: g.left }}>
+            <SmokeGrenade
+              size={g.size}
+              rotation={g.rotation}
+              opacity={g.opacity}
+            />
+          </div>
+        ))}
+      </div>
+
       {/* Purple light lines */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <svg
@@ -139,7 +240,6 @@ export default function LoginPage() {
                 />
               </div>
 
-              {/* Forgot password link — right under the password field */}
               <div className="flex justify-end mt-2">
                 <Link
                   href="/forgot-password"

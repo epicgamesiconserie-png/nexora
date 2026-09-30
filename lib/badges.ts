@@ -1,7 +1,8 @@
 export type BadgeIcon =
   | "shield" | "gem" | "check-circle" | "coins" | "gift"
   | "image" | "rocket" | "bug" | "crown" | "trophy"
-  | "medal" | "sun" | "snowflake" | "sparkles" | "award" | "zap";
+  | "medal" | "sun" | "snowflake" | "sparkles" | "award" | "zap"
+  | "heart" | "flame" | "star";
 
 export type BadgeRequirement =
   | { type: "avatar" }
@@ -12,7 +13,7 @@ export type BadgeRequirement =
   | { type: "music" }
   | { type: "views"; count: number }
   | { type: "accountAge"; days: number }
-  | { type: "manual" }; // only staff can grant
+  | { type: "manual" };
 
 export type Badge = {
   id: string;
@@ -168,6 +169,33 @@ export const BADGES: Badge[] = [
     color: "#a855f7",
     requirement: { type: "manual" },
     requirementLabel: "Purchase premium",
+  },
+  {
+    id: "dono-10",
+    name: "$10 Dono",
+    description: "Donated $10 to smokez.lol.",
+    icon: "coins",
+    color: "#22c55e",
+    requirement: { type: "manual" },
+    requirementLabel: "Donate $10",
+  },
+  {
+    id: "dono-50",
+    name: "$50 Dono",
+    description: "Donated $50 to smokez.lol.",
+    icon: "heart",
+    color: "#ec4899",
+    requirement: { type: "manual" },
+    requirementLabel: "Donate $50",
+  },
+  {
+    id: "dono-100",
+    name: "$100 Dono",
+    description: "Donated $100 to smokez.lol.",
+    icon: "flame",
+    color: "#f97316",
+    requirement: { type: "manual" },
+    requirementLabel: "Donate $100",
   },
 ];
 

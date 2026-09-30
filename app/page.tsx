@@ -2,6 +2,53 @@
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { SmokeLogoWordmark } from "@/components/SmokeLogo";
+import { Reveal } from "@/components/Reveal";
+
+/* ─── Smoke grenade SVG — white version for the homepage ─── */
+function SmokeGrenade({
+  size = 60,
+  rotation = 0,
+  opacity = 0.15,
+  color = "#ffffff",
+}: {
+  size?: number;
+  rotation?: number;
+  opacity?: number;
+  color?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ transform: `rotate(${rotation}deg)`, opacity }}
+    >
+      <g fill={color} opacity="0.85">
+        <circle cx="13" cy="19" r="3.2" />
+        <circle cx="19" cy="15" r="4.2" />
+        <circle cx="25" cy="13" r="3.4" />
+        <circle cx="17" cy="22" r="2.4" />
+        <circle cx="22" cy="19" r="2.8" />
+      </g>
+      <circle cx="44" cy="14" r="4" stroke={color} strokeWidth="1.6" fill="none" />
+      <path d="M30 20 L42 20 L43 25 L29 25 Z" fill={color} opacity="0.9" />
+      <path d="M29 25 L43 25 L44 52 L28 52 Z" fill="none" stroke={color} strokeWidth="1.6" strokeLinejoin="round" />
+      <g fill={color} opacity="0.9">
+        <circle cx="33" cy="30" r="1.1" />
+        <circle cx="39" cy="30" r="1.1" />
+        <circle cx="33" cy="35" r="1.1" />
+        <circle cx="39" cy="35" r="1.1" />
+        <circle cx="33" cy="40" r="1.1" />
+        <circle cx="39" cy="40" r="1.1" />
+        <circle cx="33" cy="45" r="1.1" />
+        <circle cx="39" cy="45" r="1.1" />
+      </g>
+      <path d="M26 52 L46 52 L46 56 L26 56 Z" fill={color} opacity="0.85" />
+    </svg>
+  );
+}
 
 export default function Home() {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -89,21 +136,60 @@ export default function Home() {
     setPhoneTransform("perspective(1200px) rotateX(0deg) rotateY(0deg) scale(1)");
   }
 
+  const grenades: {
+    top: string;
+    left: string;
+    size: number;
+    rotation: number;
+    opacity: number;
+  }[] = [
+    { top: "4%",   left: "3%",   size: 70,  rotation: -22, opacity: 0.08 },
+    { top: "6%",   left: "35%",  size: 48,  rotation: 40,  opacity: 0.05 },
+    { top: "5%",   left: "68%",  size: 55,  rotation: -15, opacity: 0.06 },
+    { top: "8%",   left: "92%",  size: 75,  rotation: 28,  opacity: 0.07 },
+    { top: "16%",  left: "12%",  size: 60,  rotation: 50,  opacity: 0.05 },
+    { top: "18%",  left: "48%",  size: 45,  rotation: -35, opacity: 0.05 },
+    { top: "20%",  left: "80%",  size: 65,  rotation: 22,  opacity: 0.06 },
+    { top: "24%",  left: "1%",   size: 90,  rotation: 15,  opacity: 0.06 },
+    { top: "32%",  left: "30%",  size: 50,  rotation: -50, opacity: 0.05 },
+    { top: "35%",  left: "60%",  size: 70,  rotation: 18,  opacity: 0.06 },
+    { top: "38%",  left: "95%",  size: 65,  rotation: -40, opacity: 0.08 },
+    { top: "42%",  left: "4%",   size: 55,  rotation: 32,  opacity: 0.06 },
+    { top: "50%",  left: "22%",  size: 80,  rotation: -18, opacity: 0.05 },
+    { top: "52%",  left: "52%",  size: 60,  rotation: 25,  opacity: 0.05 },
+    { top: "55%",  left: "85%",  size: 72,  rotation: -30, opacity: 0.06 },
+    { top: "58%",  left: "5%",   size: 80,  rotation: 35,  opacity: 0.06 },
+    { top: "68%",  left: "30%",  size: 55,  rotation: -25, opacity: 0.05 },
+    { top: "70%",  left: "93%",  size: 100, rotation: -10, opacity: 0.07 },
+    { top: "73%",  left: "12%",  size: 65,  rotation: 48,  opacity: 0.05 },
+    { top: "76%",  left: "70%",  size: 50,  rotation: 20,  opacity: 0.05 },
+    { top: "84%",  left: "2%",   size: 60,  rotation: 48,  opacity: 0.08 },
+    { top: "86%",  left: "42%",  size: 55,  rotation: -22, opacity: 0.05 },
+    { top: "90%",  left: "65%",  size: 65,  rotation: 15,  opacity: 0.06 },
+    { top: "94%",  left: "88%",  size: 75,  rotation: -30, opacity: 0.06 },
+  ];
+
   return (
     <main className="relative min-h-screen bg-black text-white overflow-hidden">
       <style jsx global>{`
         @keyframes snowfall {
           0% {
-            transform: translateY(-40px) translateX(0) rotate(0deg);
-          }
-          50% {
-            transform: translateY(50%) translateX(var(--drift)) rotate(180deg);
+            transform: translate3d(0, -60px, 0) rotate(0deg);
           }
           100% {
-            transform: translateY(calc(100% + 40px)) translateX(calc(var(--drift) * 2)) rotate(360deg);
+            transform: translate3d(var(--drift), 100vh, 0) rotate(360deg);
           }
         }
       `}</style>
+
+      {/* Small scattered white grenades */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
+        {grenades.map((g, i) => (
+          <div key={i} className="absolute" style={{ top: g.top, left: g.left }}>
+            <SmokeGrenade size={g.size} rotation={g.rotation} opacity={g.opacity} />
+          </div>
+        ))}
+      </div>
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <svg
@@ -140,27 +226,9 @@ export default function Home() {
               </feMerge>
             </filter>
           </defs>
-          <path
-            d="M -100 120 C 200 60, 400 180, 700 120 S 1200 60, 1600 140"
-            fill="none"
-            stroke="url(#purpleFade)"
-            strokeWidth="0.35"
-            filter="url(#glowLine)"
-          />
-          <path
-            d="M -100 380 C 250 260, 500 500, 800 360 S 1300 260, 1600 400"
-            fill="none"
-            stroke="url(#purpleFade2)"
-            strokeWidth="0.3"
-            filter="url(#glowLine)"
-          />
-          <path
-            d="M -100 620 C 300 540, 600 720, 900 620 S 1300 540, 1600 640"
-            fill="none"
-            stroke="url(#purpleFade3)"
-            strokeWidth="0.4"
-            filter="url(#glowLine)"
-          />
+          <path d="M -100 120 C 200 60, 400 180, 700 120 S 1200 60, 1600 140" fill="none" stroke="url(#purpleFade)" strokeWidth="0.35" filter="url(#glowLine)" />
+          <path d="M -100 380 C 250 260, 500 500, 800 360 S 1300 260, 1600 400" fill="none" stroke="url(#purpleFade2)" strokeWidth="0.3" filter="url(#glowLine)" />
+          <path d="M -100 620 C 300 540, 600 720, 900 620 S 1300 540, 1600 640" fill="none" stroke="url(#purpleFade3)" strokeWidth="0.4" filter="url(#glowLine)" />
         </svg>
       </div>
 
@@ -169,11 +237,11 @@ export default function Home() {
           className="rounded-2xl px-4 md:px-6 py-3"
           style={{
             background: "rgba(15, 15, 20, 0.85)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            border: "1px solid rgba(255, 255, 255, 0.22)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             boxShadow:
-              "0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+              "0 0 0 1px rgba(255,255,255,0.06), 0 0 24px rgba(255,255,255,0.18), 0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08)",
           }}
         >
           <div className="relative flex items-center justify-between gap-3">
@@ -184,44 +252,20 @@ export default function Home() {
             </div>
 
             <nav className="hidden md:flex items-center justify-center gap-8 text-base font-semibold text-white absolute left-1/2 -translate-x-1/2">
-              <Link href="/pricing" className="hover:text-zinc-300 transition">
-                Pricing
-              </Link>
-              <Link href="/leaderboard" className="hover:text-zinc-300 transition">
-                Leaderboard
-              </Link>
-              <a
-                href="https://discord.gg/yRtBJEW3d"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-zinc-300 transition"
-              >
-                Discord
-              </a>
+              <Link href="/pricing" className="hover:text-zinc-300 transition">Pricing</Link>
+              <Link href="/leaderboard" className="hover:text-zinc-300 transition">Leaderboard</Link>
+              <a href="https://discord.gg/yRtBJEW3d" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition">Discord</a>
             </nav>
 
             <div className="flex items-center justify-end gap-2 sm:gap-3 ml-auto">
               {loggedIn ? (
-                <Link
-                  href="/dashboard"
-                  className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm font-medium bg-white text-black hover:bg-zinc-200 transition whitespace-nowrap"
-                >
+                <Link href="/dashboard" className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm font-medium bg-white text-black hover:bg-zinc-200 transition whitespace-nowrap">
                   Dashboard
                 </Link>
               ) : (
                 <>
-                  <Link
-                    href="/register"
-                    className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm font-medium bg-white text-black hover:bg-zinc-200 transition whitespace-nowrap"
-                  >
-                    Sign up
-                  </Link>
-                  <Link
-                    href="/login"
-                    className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition whitespace-nowrap"
-                  >
-                    Log in
-                  </Link>
+                  <Link href="/register" className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm font-medium bg-white text-black hover:bg-zinc-200 transition whitespace-nowrap">Sign up</Link>
+                  <Link href="/login" className="px-3 md:px-4 h-10 inline-flex items-center rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition whitespace-nowrap">Log in</Link>
                 </>
               )}
             </div>
@@ -229,254 +273,191 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="relative z-10 max-w-3xl mx-auto px-6 pt-16 pb-24 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs text-zinc-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-          Your secure bio link, one click away.
-        </div>
+      <Reveal delay={0} duration={1100}>
+        <section className="relative z-10 max-w-3xl mx-auto px-6 pt-16 pb-24 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs text-zinc-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+            Your secure bio link, one click away.
+          </div>
 
-        <div className="relative mt-6">
-          <div
-            className="pointer-events-none absolute inset-0 blur-2xl opacity-60"
-            style={{
-              background:
-                "radial-gradient(ellipse 60% 80% at 50% 50%, rgba(255,255,255,0.55), transparent 70%)",
-            }}
-          />
-          <h1
-            className="relative text-2xl sm:text-3xl md:text-5xl font-normal tracking-tight leading-tight"
-            style={{
-              color: "#ffffff",
-              fontWeight: 400,
-              textShadow: `
-                0 1px 0 rgba(255,255,255,0.9),
-                0 2px 0 rgba(200,200,200,0.7),
-                0 3px 0 rgba(150,150,150,0.5),
-                0 4px 8px rgba(0,0,0,0.5),
-                0 0 20px rgba(255,255,255,0.5),
-                0 0 40px rgba(255,255,255,0.3)
-              `,
-            }}
-          >
-            Create A{" "}
-            <span
-              className="inline-block relative font-normal"
+          <div className="relative mt-6">
+            <div className="pointer-events-none absolute inset-0 blur-2xl opacity-60" style={{ background: "radial-gradient(ellipse 60% 80% at 50% 50%, rgba(255,255,255,0.55), transparent 70%)" }} />
+            <h1
+              className="relative text-2xl sm:text-3xl md:text-5xl font-normal tracking-tight leading-tight"
               style={{
                 color: "#ffffff",
                 fontWeight: 400,
-                verticalAlign: "baseline",
-                transition: "opacity 300ms ease-out",
-                opacity: wordVisible ? 1 : 0,
-                willChange: "opacity",
-                transform: "translateZ(0)",
-                backfaceVisibility: "hidden",
-                textShadow: "0 0 20px rgba(255,255,255,0.5)",
+                textShadow: "0 1px 0 rgba(255,255,255,0.9), 0 2px 0 rgba(200,200,200,0.7), 0 3px 0 rgba(150,150,150,0.5), 0 4px 8px rgba(0,0,0,0.5), 0 0 20px rgba(255,255,255,0.5), 0 0 40px rgba(255,255,255,0.3)",
               }}
             >
-              {words[wordIndex]}
-            </span>{" "}
-            Page For All Your Links
-          </h1>
-        </div>
-
-        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-          <Link
-            href="/register"
-            className="inline-flex items-center justify-center h-12 px-6 rounded-xl font-medium bg-white text-black hover:bg-zinc-200 transition"
-          >
-            Build your page now →
-          </Link>
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center h-12 px-6 rounded-xl font-medium border border-white/20 bg-white/5 hover:bg-white/10 transition text-white"
-          >
-            Log in
-          </Link>
-        </div>
-
-        <p className="mt-4 text-xs text-zinc-500"></p>
-      </section>
-
-      {/* Devices bar with mountains + snow */}
-      <div
-        className="relative z-20 w-full overflow-hidden"
-        style={{
-          backgroundColor: "rgba(15, 15, 20, 0.85)",
-          borderTop: "1px solid rgba(255,255,255,0.06)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          boxShadow: "0 0 40px -25px rgba(255,255,255,0.08)",
-        }}
-      >
-        {/* Mountains background */}
-        <svg
-          className="pointer-events-none absolute inset-x-0 bottom-0 w-full h-[60%] z-0"
-          viewBox="0 0 1440 300"
-          preserveAspectRatio="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <linearGradient id="mtnFar" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#1a1a22" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="#0a0a0f" stopOpacity="1" />
-            </linearGradient>
-            <linearGradient id="mtnMid" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#14141c" stopOpacity="1" />
-              <stop offset="100%" stopColor="#08080c" stopOpacity="1" />
-            </linearGradient>
-            <linearGradient id="mtnNear" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0f0f16" stopOpacity="1" />
-              <stop offset="100%" stopColor="#050507" stopOpacity="1" />
-            </linearGradient>
-          </defs>
-
-          {/* Far mountains */}
-          <path
-            d="M 0 300 L 0 200 L 120 120 L 220 180 L 320 100 L 440 170 L 560 90 L 680 160 L 800 110 L 920 180 L 1040 100 L 1160 170 L 1280 130 L 1400 190 L 1440 160 L 1440 300 Z"
-            fill="url(#mtnFar)"
-          />
-
-          {/* Mid mountains */}
-          <path
-            d="M 0 300 L 0 240 L 180 150 L 340 220 L 500 140 L 680 230 L 860 160 L 1020 230 L 1180 150 L 1340 220 L 1440 180 L 1440 300 Z"
-            fill="url(#mtnMid)"
-          />
-
-          {/* Near mountains */}
-          <path
-            d="M 0 300 L 0 270 L 150 200 L 320 260 L 500 190 L 700 260 L 900 200 L 1100 260 L 1280 210 L 1440 260 L 1440 300 Z"
-            fill="url(#mtnNear)"
-          />
-        </svg>
-
-        {/* Snowflakes */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden z-[1]">
-          {snowflakes.map((flake, i) => (
-            <div
-              key={i}
-              className="absolute top-0"
-              style={
-                {
-                  left: `${flake.left}%`,
-                  opacity: flake.opacity,
-                  filter: flake.blur ? `blur(${flake.blur}px)` : undefined,
-                  animation: `snowfall ${flake.duration}s linear ${flake.delay}s infinite`,
-                  "--drift": `${flake.drift}px`,
-                } as React.CSSProperties
-              }
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width={flake.size}
-                height={flake.size}
+              Create A{" "}
+              <span
+                className="inline-block relative font-normal"
                 style={{
-                  display: "block",
-                  transform: `rotate(${flake.rotate}deg)`,
-                  filter:
-                    "drop-shadow(0 0 4px rgba(255,255,255,0.9)) drop-shadow(0 0 8px rgba(200,220,255,0.5))",
+                  color: "#ffffff",
+                  fontWeight: 400,
+                  verticalAlign: "baseline",
+                  transition: "opacity 300ms ease-out",
+                  opacity: wordVisible ? 1 : 0,
+                  willChange: "opacity",
+                  transform: "translateZ(0)",
+                  backfaceVisibility: "hidden",
+                  textShadow: "0 0 20px rgba(255,255,255,0.5)",
                 }}
               >
-                <g
-                  stroke="white"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  fill="none"
-                >
-                  <line x1="12" y1="2" x2="12" y2="22" />
-                  <line x1="2" y1="12" x2="22" y2="12" />
-                  <line x1="5" y1="5" x2="19" y2="19" />
-                  <line x1="19" y1="5" x2="5" y2="19" />
-                  <line x1="12" y1="5" x2="9.5" y2="7.5" />
-                  <line x1="12" y1="5" x2="14.5" y2="7.5" />
-                  <line x1="12" y1="19" x2="9.5" y2="16.5" />
-                  <line x1="12" y1="19" x2="14.5" y2="16.5" />
-                  <line x1="5" y1="12" x2="7.5" y2="9.5" />
-                  <line x1="5" y1="12" x2="7.5" y2="14.5" />
-                  <line x1="19" y1="12" x2="16.5" y2="9.5" />
-                  <line x1="19" y1="12" x2="16.5" y2="14.5" />
-                </g>
-              </svg>
-            </div>
-          ))}
-        </div>
-
-        <section className="relative z-10 px-6 md:px-12 py-10 md:py-14 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="relative w-full md:w-[520px] text-left flex-shrink-0 md:ml-24 lg:ml-32">
-            <p
-              className="relative text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] whitespace-nowrap"
-              style={{
-                color: "#ffffff",
-                textShadow: `
-                  0 1px 0 rgba(255,255,255,0.95),
-                  0 2px 0 rgba(220,220,220,0.8),
-                  0 3px 0 rgba(180,180,180,0.6),
-                  0 4px 0 rgba(140,140,140,0.4),
-                  0 5px 12px rgba(0,0,0,0.6),
-                  0 0 24px rgba(255,255,255,0.55),
-                  0 0 48px rgba(255,255,255,0.35)
-                `,
-              }}
-            >
-              Available For All Devices
-            </p>
-
-            <p
-              className="relative mt-6 text-sm md:text-base leading-relaxed"
-              style={{
-                color: "#d4d4d8",
-                textShadow:
-                  "0 0 12px rgba(255,255,255,0.4), 0 0 30px rgba(255,255,255,0.2)",
-              }}
-            >
-              Whether you're on a phone, tablet, or desktop — smokez.lol looks stunning everywhere. One link, always in reach.
-            </p>
+                {words[wordIndex]}
+              </span>{" "}
+              Page For All Your Links
+            </h1>
           </div>
 
-          <div className="relative flex flex-col sm:flex-row items-center justify-end flex-shrink-0 gap-4 sm:gap-0">
-            <div
-              ref={cardRef}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-              style={{
-                transform,
-                transition: "transform 0.15s ease-out",
-                transformStyle: "preserve-3d",
-                willChange: "transform",
-                position: "relative",
-                zIndex: 1,
-              }}
-              className="flex-shrink-0"
-            >
-              <img
-                src="/mockup.png"
-                alt="smokez.lol laptop preview"
-                className="w-[280px] sm:w-[500px] md:w-[700px] h-auto block"
-              />
-            </div>
-
-            <div
-              ref={phoneRef}
-              onMouseMove={handlePhoneMove}
-              onMouseLeave={handlePhoneLeave}
-              style={{
-                transform: phoneTransform,
-                transition: "transform 0.15s ease-out",
-                transformStyle: "preserve-3d",
-                willChange: "transform",
-                overflow: "hidden",
-                position: "relative",
-                zIndex: 2,
-              }}
-              className="flex-shrink-0 -ml-0 sm:-ml-[60px]"
-            >
-              <img
-                src="/phone.png.png"
-                alt="smokez.lol phone preview"
-                className="w-[140px] sm:w-[220px] md:w-[300px] h-auto block -mr-6 md:-mr-[50px]"
-              />
-            </div>
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/register" className="inline-flex items-center justify-center h-12 px-6 rounded-xl font-medium bg-white text-black hover:bg-zinc-200 transition">Build your page now →</Link>
+            <Link href="/login" className="inline-flex items-center justify-center h-12 px-6 rounded-xl font-medium border border-white/20 bg-white/5 hover:bg-white/10 transition text-white">Log in</Link>
           </div>
+
+          <p className="mt-4 text-xs text-zinc-500"></p>
         </section>
-      </div>
+      </Reveal>
+
+      <Reveal delay={500} duration={1300} y={20} scale={0.96}>
+        <div
+          className="relative z-20 w-full overflow-hidden"
+          style={{
+            backgroundColor: "rgba(15, 15, 20, 0.85)",
+            borderTop: "1px solid rgba(255,255,255,0.06)",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            boxShadow: "0 0 40px -25px rgba(255,255,255,0.08)",
+          }}
+        >
+          <svg
+            className="pointer-events-none absolute inset-x-0 bottom-0 w-full h-[60%] z-0"
+            viewBox="0 0 1440 300"
+            preserveAspectRatio="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <linearGradient id="mtnFar" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#1a1a22" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#0a0a0f" stopOpacity="1" />
+              </linearGradient>
+              <linearGradient id="mtnMid" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#14141c" stopOpacity="1" />
+                <stop offset="100%" stopColor="#08080c" stopOpacity="1" />
+              </linearGradient>
+              <linearGradient id="mtnNear" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#0f0f16" stopOpacity="1" />
+                <stop offset="100%" stopColor="#050507" stopOpacity="1" />
+              </linearGradient>
+            </defs>
+            <path d="M 0 300 L 0 200 L 120 120 L 220 180 L 320 100 L 440 170 L 560 90 L 680 160 L 800 110 L 920 180 L 1040 100 L 1160 170 L 1280 130 L 1400 190 L 1440 160 L 1440 300 Z" fill="url(#mtnFar)" />
+            <path d="M 0 300 L 0 240 L 180 150 L 340 220 L 500 140 L 680 230 L 860 160 L 1020 230 L 1180 150 L 1340 220 L 1440 180 L 1440 300 Z" fill="url(#mtnMid)" />
+            <path d="M 0 300 L 0 270 L 150 200 L 320 260 L 500 190 L 700 260 L 900 200 L 1100 260 L 1280 210 L 1440 260 L 1440 300 Z" fill="url(#mtnNear)" />
+          </svg>
+
+          <div className="pointer-events-none absolute inset-0 overflow-hidden z-[1]">
+            {snowflakes.map((flake, i) => (
+              <div
+                key={i}
+                className="absolute top-0"
+                style={
+                  {
+                    left: `${flake.left}%`,
+                    opacity: flake.opacity,
+                    filter: flake.blur ? `blur(${flake.blur}px)` : undefined,
+                    animation: `snowfall ${flake.duration}s linear ${flake.delay}s infinite`,
+                    "--drift": `${flake.drift}px`,
+                  } as React.CSSProperties
+                }
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width={flake.size}
+                  height={flake.size}
+                  style={{
+                    display: "block",
+                    transform: `rotate(${flake.rotate}deg)`,
+                    filter: "drop-shadow(0 0 4px rgba(255,255,255,0.9)) drop-shadow(0 0 8px rgba(200,220,255,0.5))",
+                  }}
+                >
+                  <g stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none">
+                    <line x1="12" y1="2" x2="12" y2="22" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <line x1="5" y1="5" x2="19" y2="19" />
+                    <line x1="19" y1="5" x2="5" y2="19" />
+                    <line x1="12" y1="5" x2="9.5" y2="7.5" />
+                    <line x1="12" y1="5" x2="14.5" y2="7.5" />
+                    <line x1="12" y1="19" x2="9.5" y2="16.5" />
+                    <line x1="12" y1="19" x2="14.5" y2="16.5" />
+                    <line x1="5" y1="12" x2="7.5" y2="9.5" />
+                    <line x1="5" y1="12" x2="7.5" y2="14.5" />
+                    <line x1="19" y1="12" x2="16.5" y2="9.5" />
+                    <line x1="19" y1="12" x2="16.5" y2="14.5" />
+                  </g>
+                </svg>
+              </div>
+            ))}
+          </div>
+
+          <section className="relative z-10 px-6 md:px-12 py-10 md:py-14 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="relative w-full md:w-[520px] text-left flex-shrink-0 md:ml-24 lg:ml-32">
+              <p
+                className="relative text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] whitespace-nowrap"
+                style={{
+                  color: "#ffffff",
+                  textShadow: "0 1px 0 rgba(255,255,255,0.95), 0 2px 0 rgba(220,220,220,0.8), 0 3px 0 rgba(180,180,180,0.6), 0 4px 0 rgba(140,140,140,0.4), 0 5px 12px rgba(0,0,0,0.6), 0 0 24px rgba(255,255,255,0.55), 0 0 48px rgba(255,255,255,0.35)",
+                }}
+              >
+                Available For All Devices
+              </p>
+
+              <p
+                className="relative mt-6 text-sm md:text-base leading-relaxed"
+                style={{ color: "#d4d4d8", textShadow: "0 0 12px rgba(255,255,255,0.4), 0 0 30px rgba(255,255,255,0.2)" }}
+              >
+                Whether you're on a phone, tablet, or desktop — smokez.lol looks stunning everywhere. One link, always in reach.
+              </p>
+            </div>
+
+            <div className="relative flex flex-col sm:flex-row items-center justify-end flex-shrink-0 gap-4 sm:gap-0">
+              <div
+                ref={cardRef}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+                style={{
+                  transform,
+                  transition: "transform 0.15s ease-out",
+                  transformStyle: "preserve-3d",
+                  willChange: "transform",
+                  position: "relative",
+                  zIndex: 1,
+                }}
+                className="flex-shrink-0"
+              >
+                <img src="/mockup.png" alt="smokez.lol laptop preview" className="w-[280px] sm:w-[500px] md:w-[700px] h-auto block" />
+              </div>
+
+              <div
+                ref={phoneRef}
+                onMouseMove={handlePhoneMove}
+                onMouseLeave={handlePhoneLeave}
+                style={{
+                  transform: phoneTransform,
+                  transition: "transform 0.15s ease-out",
+                  transformStyle: "preserve-3d",
+                  willChange: "transform",
+                  overflow: "hidden",
+                  position: "relative",
+                  zIndex: 2,
+                }}
+                className="flex-shrink-0 -ml-0 sm:-ml-[60px]"
+              >
+                <img src="/phone.png.png" alt="smokez.lol phone preview" className="w-[140px] sm:w-[220px] md:w-[300px] h-auto block -mr-6 md:-mr-[50px]" />
+              </div>
+            </div>
+          </section>
+        </div>
+      </Reveal>
 
       <section className="relative z-10 max-w-6xl mx-auto px-6 pt-32 pb-24">
         <div className="text-center mb-6">
@@ -490,13 +471,7 @@ export default function Home() {
           className="text-center text-4xl md:text-6xl font-bold tracking-tight mb-4"
           style={{
             color: "#ffffff",
-            textShadow: `
-              0 1px 0 rgba(255,255,255,0.9),
-              0 2px 0 rgba(200,200,200,0.6),
-              0 4px 8px rgba(0,0,0,0.5),
-              0 0 24px rgba(255,255,255,0.5),
-              0 0 48px rgba(255,255,255,0.25)
-            `,
+            textShadow: "0 1px 0 rgba(255,255,255,0.9), 0 2px 0 rgba(200,200,200,0.6), 0 4px 8px rgba(0,0,0,0.5), 0 0 24px rgba(255,255,255,0.5), 0 0 48px rgba(255,255,255,0.25)",
           }}
         >
           How It Works
@@ -511,39 +486,20 @@ export default function Home() {
             <div
               className="w-16 h-16 rounded-full grid place-items-center mb-6"
               style={{
-                background:
-                  "radial-gradient(circle at 35% 30%, #3a3a44 0%, #14141a 70%)",
+                background: "radial-gradient(circle at 35% 30%, #3a3a44 0%, #14141a 70%)",
                 border: "1.5px solid rgba(255,255,255,0.55)",
-                boxShadow:
-                  "0 0 30px rgba(255,255,255,0.35), inset 0 0 15px rgba(255,255,255,0.15)",
+                boxShadow: "0 0 30px rgba(255,255,255,0.35), inset 0 0 15px rgba(255,255,255,0.15)",
               }}
             >
               <span className="text-2xl font-bold text-white">1</span>
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">Sign Up</h3>
-            <p className="text-sm text-zinc-400 max-w-[220px] leading-relaxed">
-              Create your free account in seconds.
-            </p>
+            <p className="text-sm text-zinc-400 max-w-[220px] leading-relaxed">Create your free account in seconds.</p>
           </div>
 
           <div className="hidden md:flex items-center justify-center self-start pt-8 shrink-0">
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              style={{
-                filter:
-                  "drop-shadow(0 0 6px rgba(255,255,255,0.7)) drop-shadow(0 0 14px rgba(255,255,255,0.35))",
-              }}
-            >
-              <path
-                d="M5 12H19M13 5l7 7-7 7"
-                fill="none"
-                stroke="white"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+            <svg width="28" height="28" viewBox="0 0 24 24" style={{ filter: "drop-shadow(0 0 6px rgba(255,255,255,0.7)) drop-shadow(0 0 14px rgba(255,255,255,0.35))" }}>
+              <path d="M5 12H19M13 5l7 7-7 7" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
 
@@ -551,39 +507,20 @@ export default function Home() {
             <div
               className="w-16 h-16 rounded-full grid place-items-center mb-6"
               style={{
-                background:
-                  "radial-gradient(circle at 35% 30%, #3a3a44 0%, #14141a 70%)",
+                background: "radial-gradient(circle at 35% 30%, #3a3a44 0%, #14141a 70%)",
                 border: "1.5px solid rgba(255,255,255,0.55)",
-                boxShadow:
-                  "0 0 30px rgba(255,255,255,0.35), inset 0 0 15px rgba(255,255,255,0.15)",
+                boxShadow: "0 0 30px rgba(255,255,255,0.35), inset 0 0 15px rgba(255,255,255,0.15)",
               }}
             >
               <span className="text-2xl font-bold text-white">2</span>
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">Add Your Links</h3>
-            <p className="text-sm text-zinc-400 max-w-[220px] leading-relaxed">
-              Choose your favourite links and customise your page.
-            </p>
+            <p className="text-sm text-zinc-400 max-w-[220px] leading-relaxed">Choose your favourite links and customise your page.</p>
           </div>
 
           <div className="hidden md:flex items-center justify-center self-start pt-8 shrink-0">
-            <svg
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              style={{
-                filter:
-                  "drop-shadow(0 0 6px rgba(255,255,255,0.7)) drop-shadow(0 0 14px rgba(255,255,255,0.35))",
-              }}
-            >
-              <path
-                d="M5 12H19M13 5l7 7-7 7"
-                fill="none"
-                stroke="white"
-                strokeWidth="1.75"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+            <svg width="28" height="28" viewBox="0 0 24 24" style={{ filter: "drop-shadow(0 0 6px rgba(255,255,255,0.7)) drop-shadow(0 0 14px rgba(255,255,255,0.35))" }}>
+              <path d="M5 12H19M13 5l7 7-7 7" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
 
@@ -591,24 +528,20 @@ export default function Home() {
             <div
               className="w-16 h-16 rounded-full grid place-items-center mb-6"
               style={{
-                background:
-                  "radial-gradient(circle at 35% 30%, #3a3a44 0%, #14141a 70%)",
+                background: "radial-gradient(circle at 35% 30%, #3a3a44 0%, #14141a 70%)",
                 border: "1.5px solid rgba(255,255,255,0.55)",
-                boxShadow:
-                  "0 0 30px rgba(255,255,255,0.35), inset 0 0 15px rgba(255,255,255,0.15)",
+                boxShadow: "0 0 30px rgba(255,255,255,0.35), inset 0 0 15px rgba(255,255,255,0.15)",
               }}
             >
               <span className="text-2xl font-bold text-white">3</span>
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">Share</h3>
-            <p className="text-sm text-zinc-400 max-w-[220px] leading-relaxed">
-              Get your unique link and start sharing!
-            </p>
+            <p className="text-sm text-zinc-400 max-w-[220px] leading-relaxed">Get your unique link and start sharing!</p>
           </div>
         </div>
       </section>
 
-      <section className="relative z-10 max-w-6xl mx-auto px-6 pt-48 pb-32">
+      <section className="relative z-10 max-w-6xl mx-auto px-6 pt-48 pb-24">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-8 hover:border-white/25 hover:bg-white/[0.05] transition">
             <div className="w-12 h-12 rounded-full grid place-items-center mb-6 border border-white/15 bg-white/[0.03]">
@@ -617,9 +550,7 @@ export default function Home() {
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">Safe &amp; Secure</h3>
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              Your page is protected with industry-grade encryption — always.
-            </p>
+            <p className="text-sm text-zinc-400 leading-relaxed">Your page is protected with industry-grade encryption — always.</p>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-8 hover:border-white/25 hover:bg-white/[0.05] transition">
@@ -629,9 +560,7 @@ export default function Home() {
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">Lightning Fast</h3>
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              Your page loads in a blink. Optimized for speed so visitors never wait.
-            </p>
+            <p className="text-sm text-zinc-400 leading-relaxed">Your page loads in a blink. Optimized for speed so visitors never wait.</p>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-sm p-8 hover:border-white/25 hover:bg-white/[0.05] transition">
@@ -641,52 +570,10 @@ export default function Home() {
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">Custom Links</h3>
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              Add any link you want — socials, websites, or your own custom URLs.
-            </p>
+            <p className="text-sm text-zinc-400 leading-relaxed">Add any link you want — socials, websites, or your own custom URLs.</p>
           </div>
         </div>
       </section>
-
-      <div className="h-[40vh]" />
-
-      <div
-        className="relative w-full"
-        style={{
-          backgroundColor: "#000000",
-          backgroundImage: `
-            linear-gradient(rgba(80, 80, 80, 0.35) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(80, 80, 80, 0.35) 1px, transparent 1px)
-          `,
-          backgroundSize: "60px 60px",
-        }}
-      >
-        <section className="relative z-10 px-6 pt-24 pb-40 text-center">
-          <h2
-            className="text-3xl md:text-6xl font-bold tracking-tight"
-            style={{
-              color: "#ffffff",
-              textShadow: `
-                0 1px 0 rgba(255,255,255,0.9),
-                0 2px 0 rgba(200,200,200,0.6),
-                0 4px 8px rgba(0,0,0,0.5),
-                0 0 24px rgba(255,255,255,0.5),
-                0 0 48px rgba(255,255,255,0.25)
-              `,
-            }}
-          >
-            Users Worldwide
-          </h2>
-
-          <p className="mt-6 text-zinc-400 max-w-md mx-auto">
-            People from every corner of the world use smokez.lol to share what matters most.
-          </p>
-        </section>
-
-        <footer className="relative z-10 border-t border-white/10 py-6 text-center text-xs text-zinc-500">
-          © {new Date().getFullYear()} smokez.lol
-        </footer>
-      </div>
     </main>
   );
 }

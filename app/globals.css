@@ -140,3 +140,115 @@ body {
 .font-space      { font-family: var(--font-space), system-ui, sans-serif; }
 .font-dm         { font-family: var(--font-dm), system-ui, sans-serif; }
 .font-nunito     { font-family: var(--font-nunito), system-ui, sans-serif; }
+
+/* ===== New display fonts ===== */
+.font-bebas      { font-family: var(--font-bebas), system-ui, sans-serif; letter-spacing: 0.02em; }
+.font-cinzel     { font-family: var(--font-cinzel), Georgia, serif; }
+.font-orbitron   { font-family: var(--font-orbitron), system-ui, sans-serif; letter-spacing: 0.04em; }
+.font-bungee     { font-family: var(--font-bungee), system-ui, sans-serif; letter-spacing: 0.01em; }
+.font-fraktur    { font-family: var(--font-fraktur), "UnifrakturCook", Georgia, serif; }
+
+/* ===== Animated Title — new effects ===== */
+
+/* GLITCH — RGB split + jitter */
+.effect-glitch {
+  position: relative;
+  display: inline-block;
+  color: #fff;
+  text-shadow:
+    0.05em 0 0 rgba(255, 0, 80, 0.75),
+    -0.025em -0.05em 0 rgba(0, 255, 187, 0.75),
+    0.025em 0.05em 0 rgba(0, 200, 255, 0.75);
+  animation: glitch-shift 2.5s infinite;
+}
+.effect-glitch::before,
+.effect-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  color: #fff;
+}
+.effect-glitch::before {
+  color: #ff0050;
+  animation: glitch-a 1.8s infinite linear alternate-reverse;
+  clip-path: inset(0 0 60% 0);
+}
+.effect-glitch::after {
+  color: #00ffe1;
+  animation: glitch-b 2s infinite linear alternate-reverse;
+  clip-path: inset(55% 0 0 0);
+}
+@keyframes glitch-shift {
+  0%, 88%, 100% { transform: translate(0); }
+  90% { transform: translate(-2px, 1px); }
+  92% { transform: translate(2px, -1px); }
+  94% { transform: translate(-1px, 2px); }
+  96% { transform: translate(1px, -1px); }
+}
+@keyframes glitch-a {
+  0%   { transform: translate(-2px, 0); }
+  50%  { transform: translate(2px, -2px); }
+  100% { transform: translate(-1px, 2px); }
+}
+@keyframes glitch-b {
+  0%   { transform: translate(2px, 0); }
+  50%  { transform: translate(-2px, 2px); }
+  100% { transform: translate(1px, -2px); }
+}
+
+/* SHIMMER — sweeping highlight */
+.effect-shimmer {
+  display: inline-block;
+  background: linear-gradient(
+    90deg,
+    #a1a1aa 0%,
+    #ffffff 45%,
+    #ffffff 55%,
+    #a1a1aa 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shimmer-slide 3s linear infinite;
+}
+@keyframes shimmer-slide {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* NEON — reused by existing "neon" style, but if missing add this */
+.effect-neon {
+  color: #fff;
+  text-shadow:
+    0 0 4px #fff,
+    0 0 11px #fff,
+    0 0 19px #a855f7,
+    0 0 40px #a855f7,
+    0 0 80px #a855f7;
+}
+
+/* ============================================================
+   NEXORA reveal animation (homepage entrance)
+   ============================================================ */
+
+@keyframes nexoraReveal {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--reveal-y, 16px), 0)
+      scale(var(--reveal-scale, 0.96));
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [style*="nexoraReveal"] {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

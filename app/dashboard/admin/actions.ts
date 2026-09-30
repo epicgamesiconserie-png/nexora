@@ -128,3 +128,102 @@ export async function listPremiumCodes() {
   });
   return { codes };
 }
+
+// ============================================================
+// BADGE GRANT / REVOKE (admin only)
+// ============================================================
+
+export async function grantBadgeToUser(
+  targetUsername: string,
+  badgeId: string
+): Promise<{ success: boolean; error?: string }> {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { success: false, error: auth.error };
+
+  if (!targetUsername || !badgeId) {
+    return { success: false, error: "Missing username or badge" };
+  }
+
+  try {
+    const targetUser = await prisma.user.findUnique({
+      where: { usernameNorm: targetUsername.trim().toLowerCase() },
+      select: {
+        id: true,
+        username: true,
+        profile: { select: { badges: true, unlockedBadges: true } },
+      },
+    });
+
+    if (!targetUser) {
+      return { success: false, error: `No user named @${targetUsername}` };
+    }
+
+    const currentClaimed = targetUser.profile?.badges ?? [];
+    const currentUnlocked = targetUser.profile?.unlockedBadges ?? [];
+
+    const newClaimed = currentClaimed.includes(badgeId)
+      ? currentClaimed
+      : [...currentClaimed, badgeId];
+    const newUnlocked = currentUnlocked.includes(badgeId)
+      ? currentUnlocked
+      : [...currentUnlocked, badgeId];
+
+    await prisma.profile.upsert({
+      where: { userId: targetUser.id },
+      update: { badges: newClaimed, unlockedBadges: newUnlocked },
+      create: { userId: targetUser.id, badges: newClaimed, unlockedBadges: newUnlocked },
+    });
+
+    revalidatePath("/dashboard/admin");
+    revalidatePath("/u/[username]", "page");
+    return { success: true };
+  } catch (err) {
+    console.error("grantBadgeToUser error:", err);
+    return { success: false, error: "Database error" };
+  }
+}
+
+export async function revokeBadgeFromUser(
+  targetUsername: string,
+  badgeId: string
+): Promise<{ success: boolean; error?: string }> {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { success: false, error: auth.error };
+
+  if (!targetUsername || !badgeId) {
+    return { success: false, error: "Missing username or badge" };
+  }
+
+  try {
+    const targetUser = await prisma.user.findUnique({
+      where: { usernameNorm: targetUsername.trim().toLowerCase() },
+      select: {
+        id: true,
+        profile: { select: { badges: true, unlockedBadges: true } },
+      },
+    });
+
+    if (!targetUser) {
+      return { success: false, error: `No user named @${targetUsername}` };
+    }
+
+    const currentClaimed = targetUser.profile?.badges ?? [];
+    const currentUnlocked = targetUser.profile?.unlockedBadges ?? [];
+
+    await prisma.profile.upsert({
+      where: { userId: targetUser.id },
+      update: {
+        badges: currentClaimed.filter((b) => b !== badgeId),
+        unlockedBadges: currentUnlocked.filter((b) => b !== badgeId),
+      },
+      create: { userId: targetUser.id },
+    });
+
+    revalidatePath("/dashboard/admin");
+    revalidatePath("/u/[username]", "page");
+    return { success: true };
+  } catch (err) {
+    console.error("revokeBadgeFromUser error:", err);
+    return { success: false, error: "Database error" };
+  }
+}

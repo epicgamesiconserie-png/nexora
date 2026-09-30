@@ -9,7 +9,10 @@ import {
   deletePremiumCode,
   listPremiumCodes,
   revokePremium,
+  grantBadgeToUser,
 } from "./actions";
+import { BADGES } from "@/lib/badges";
+import { BadgeIcon } from "@/components/BadgeIcon";
 import {
   LayoutDashboard, Link2, Palette, Music,
   LogOut, Crown, Home, Award, Plus, Trash2, Copy, Check,
@@ -39,6 +42,11 @@ export default function AdminPage() {
   const [lastCode, setLastCode] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [revoking, setRevoking] = useState<string | null>(null);
+
+  // Badge grant state
+  const [badgeUsername, setBadgeUsername] = useState("");
+  const [badgeId, setBadgeId] = useState(BADGES[0]?.id ?? "");
+  const [granting, setGranting] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -103,6 +111,22 @@ export default function AdminPage() {
       load();
     } else {
       toast.error(res.error || "Failed to revoke");
+    }
+  }
+
+  async function handleGrantBadge() {
+    if (!badgeUsername.trim()) {
+      toast.error("Enter a username");
+      return;
+    }
+    setGranting(true);
+    const res = await grantBadgeToUser(badgeUsername.trim(), badgeId);
+    setGranting(false);
+    if (res.success) {
+      toast.success(`Gave "${badgeId}" to @${badgeUsername.trim()}`);
+      setBadgeUsername("");
+    } else {
+      toast.error(res.error || "Failed to grant badge");
     }
   }
 
@@ -192,11 +216,11 @@ export default function AdminPage() {
               Admin Panel
             </h1>
             <p className="text-sm text-zinc-500 mt-2">
-              Generate premium codes to give away.
+              Generate premium codes and manage user badges.
             </p>
           </div>
 
-          {/* Create */}
+          {/* Create Premium Code */}
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
             <h2 className="text-lg font-bold mb-4">Generate Premium Code</h2>
             <div className="flex flex-wrap items-end gap-3">
@@ -238,6 +262,70 @@ export default function AdminPage() {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Grant Badge */}
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <Award className="h-5 w-5 text-purple-400" />
+              Grant Badge
+            </h2>
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-xs font-semibold text-zinc-400 mb-2">Username</label>
+                <input
+                  type="text"
+                  value={badgeUsername}
+                  onChange={(e) => setBadgeUsername(e.target.value)}
+                  placeholder="lol"
+                  className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm outline-none focus:border-white/30 placeholder:text-white/30"
+                />
+              </div>
+              <div className="flex-1 min-w-[240px]">
+                <label className="block text-xs font-semibold text-zinc-400 mb-2">Badge</label>
+                <select
+                  value={badgeId}
+                  onChange={(e) => setBadgeId(e.target.value)}
+                  className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm outline-none focus:border-white/30"
+                >
+                  {BADGES.map((b) => (
+                    <option key={b.id} value={b.id} className="bg-zinc-900">
+                      {b.name} — {b.id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={handleGrantBadge}
+                disabled={granting}
+                className="flex items-center gap-2 h-11 px-5 rounded-xl bg-white text-black hover:bg-zinc-200 font-semibold transition disabled:opacity-50"
+              >
+                <Plus className="h-4 w-4" />
+                {granting ? "Granting..." : "Grant Badge"}
+              </button>
+            </div>
+
+            {/* Preview of selected badge */}
+            <div className="mt-4 flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+              {(() => {
+                const b = BADGES.find((x) => x.id === badgeId);
+                if (!b) return null;
+                return (
+                  <>
+                    <BadgeIcon icon={b.icon} className="h-5 w-5" color={b.color} strokeWidth={2.2} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-white">{b.name}</div>
+                      <div className="text-xs text-zinc-500 truncate">{b.description}</div>
+                    </div>
+                    <span className="text-[10px] text-zinc-600 font-mono">{b.id}</span>
+                  </>
+                );
+              })()}
+            </div>
+
+            <p className="text-xs text-zinc-500 mt-3">
+              Typing a username and picking a badge will give it to that user. They&apos;ll see it immediately on their profile.
+            </p>
           </div>
 
           {/* Codes */}

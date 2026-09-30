@@ -10,6 +10,11 @@ import {
   Space_Grotesk,
   DM_Sans,
   Nunito,
+  Bebas_Neue,
+  Cinzel,
+  Orbitron,
+  Bungee,
+  UnifrakturCook,
 } from "next/font/google";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -31,6 +36,37 @@ const lora = Lora({ subsets: ["latin"], variable: "--font-lora", display: "swap"
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space", display: "swap" });
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm", display: "swap" });
 const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito", display: "swap" });
+
+const bebas = Bebas_Neue({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-bebas",
+  display: "swap",
+});
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-cinzel",
+  display: "swap",
+});
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-orbitron",
+  display: "swap",
+});
+const bungee = Bungee({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-bungee",
+  display: "swap",
+});
+const fraktur = UnifrakturCook({
+  subsets: ["latin"],
+  weight: "700",
+  variable: "--font-fraktur",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "smokez.lol — Your link, your world",
@@ -55,6 +91,11 @@ export default function RootLayout({
         ${spaceGrotesk.variable}
         ${dmSans.variable}
         ${nunito.variable}
+        ${bebas.variable}
+        ${cinzel.variable}
+        ${orbitron.variable}
+        ${bungee.variable}
+        ${fraktur.variable}
       `}
     >
       <body className="bg-[#0a0a0f] text-white antialiased">{children}</body>

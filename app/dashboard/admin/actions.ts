@@ -67,7 +67,6 @@ export async function createPremiumCode(duration: number): Promise<{
 
   const days = Math.max(1, Math.min(3650, Math.floor(duration || 30)));
 
-  // Random code: SMKZ-XXXX-XXXX
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const chunk = (n: number) =>
     Array.from({ length: n })
@@ -149,22 +148,42 @@ export async function grantBadgeToUser(
   try {
     const user = await prisma.user.findUnique({
       where: { usernameNorm: username.trim().toLowerCase() },
-      select: { id: true, profile: { select: { id: true, badges: true } } },
+      select: {
+        id: true,
+        profile: {
+          select: { id: true, badges: true, unlockedBadges: true },
+        },
+      },
     });
     if (!user) return { success: false, error: "No user with that username" };
     if (!user.profile) return { success: false, error: "User has no profile" };
 
-    const current = user.profile.badges ?? [];
-    if (current.includes(badgeId)) {
+    const currentBadges = user.profile.badges ?? [];
+    const currentUnlocked = user.profile.unlockedBadges ?? [];
+
+    if (currentBadges.includes(badgeId) && currentUnlocked.includes(badgeId)) {
       return { success: false, error: "User already has this badge" };
     }
 
+    // Write to BOTH lists:
+    // - `badges` is what shows on the public profile
+    // - `unlockedBadges` is what the /dashboard/badges page reads to
+    //   determine whether the badge is "earned"
     await prisma.profile.update({
       where: { id: user.profile.id },
-      data: { badges: [...current, badgeId] },
+      data: {
+        badges: currentBadges.includes(badgeId)
+          ? currentBadges
+          : [...currentBadges, badgeId],
+        unlockedBadges: currentUnlocked.includes(badgeId)
+          ? currentUnlocked
+          : [...currentUnlocked, badgeId],
+      },
     });
 
     revalidatePath("/dashboard/admin");
+    revalidatePath("/dashboard/badges");
+    revalidatePath("/u/" + user.id);
     return { success: true };
   } catch (err) {
     console.error("grantBadgeToUser failed:", err);
@@ -174,11 +193,6 @@ export async function grantBadgeToUser(
 
 /* ─── Delete user ──────────────────────────────────────────── */
 
-/**
- * Delete a user account by username. Wipes their profile, links,
- * socials, music, sessions, password resets, and analytics rows.
- * Refuses to delete the calling admin themselves.
- */
 export async function deleteUserAccount(username: string): Promise<{
   success: boolean;
   error?: string;
@@ -200,10 +214,7 @@ export async function deleteUserAccount(username: string): Promise<{
   }
 
   try {
-    // Analytics has no FK relation, so wipe it manually first
     await prisma.analytics.deleteMany({ where: { userId: target.id } });
-
-    // Everything else cascades via onDelete: Cascade on the User relation
     await prisma.user.delete({ where: { id: target.id } });
 
     revalidatePath("/dashboard/admin");

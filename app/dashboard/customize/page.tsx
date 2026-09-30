@@ -195,7 +195,6 @@ export default function CustomizePage() {
 
   const getSidebarLinks = () => [
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard, external: false },
-    { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3, external: false },
     { name: "Customize", href: "/dashboard/customize", icon: Palette, external: false },
     { name: "Links", href: "/dashboard/links", icon: Link2, external: false },
     { name: "Music", href: "/dashboard/music", icon: Music, external: false },
@@ -317,7 +316,6 @@ export default function CustomizePage() {
   }
 
   async function handleRemoveAvatar() {
-    if (!confirm("Remove your profile picture?")) return;
     setRemovingAvatar(true);
     const res = await removeAvatar();
     setRemovingAvatar(false);
@@ -330,7 +328,6 @@ export default function CustomizePage() {
   }
 
   async function handleRemoveVideo() {
-    if (!confirm("Remove your background video?")) return;
     setRemovingVideo(true);
     const res = await removeBackgroundVideo();
     setRemovingVideo(false);
@@ -344,7 +341,6 @@ export default function CustomizePage() {
   }
 
   async function handleRemoveBackgroundImage() {
-    if (!confirm("Remove your background image?")) return;
     setRemovingBackground(true);
     const res = await removeBackgroundImage();
     setRemovingBackground(false);
@@ -358,7 +354,6 @@ export default function CustomizePage() {
   }
 
   async function handleRemoveAudio() {
-    if (!confirm("Remove your audio?")) return;
     setRemovingAudio(true);
     const res = await removeAudio();
     setRemovingAudio(false);

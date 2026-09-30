@@ -36,6 +36,7 @@ model Profile {
   displayName        String?  @map("display_name")
   bio                String?  @db.Text
   avatarUrl          String?  @map("avatar_url")
+  avatarStyle        String   @default("circle") @map("avatar_style")
   backgroundUrl      String?  @map("background_url")
   backgroundVideoUrl String?  @map("background_video_url")
   backgroundType     String   @default("gradient") @map("background_type")

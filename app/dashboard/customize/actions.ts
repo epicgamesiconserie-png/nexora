@@ -282,10 +282,6 @@ export async function unclaimBadge(
 // BADGE UNLOCK SYNC
 // ============================================================
 
-/**
- * Recompute which badges the user currently qualifies for, and persist any
- * new ones into profile.unlockedBadges. Existing unlocks are never removed.
- */
 export async function syncUnlockedBadges(): Promise<{
   success: boolean;
   unlocked?: string[];
@@ -351,6 +347,37 @@ export async function syncUnlockedBadges(): Promise<{
     return { success: true, unlocked: merged };
   } catch (err) {
     console.error("syncUnlockedBadges error:", err);
+    return { success: false, error: "Database error" };
+  }
+}
+
+// ============================================================
+// AVATAR STYLE
+// ============================================================
+
+export async function saveAvatarStyle(
+  style: "circle" | "full"
+): Promise<{ success: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { success: false, error: "Not logged in" };
+
+  if (style !== "circle" && style !== "full") {
+    return { success: false, error: "Invalid style" };
+  }
+
+  try {
+    await prisma.profile.upsert({
+      where: { userId: session.userId },
+      update: { avatarStyle: style },
+      create: { userId: session.userId, avatarStyle: style },
+    });
+
+    revalidatePath("/dashboard/customize");
+    revalidatePath("/dashboard/mypage");
+    revalidatePath("/u/[username]", "page");
+    return { success: true };
+  } catch (err) {
+    console.error("saveAvatarStyle error:", err);
     return { success: false, error: "Database error" };
   }
 }

@@ -98,8 +98,8 @@ export default async function PublicProfile({
   const monochrome = profile?.monochromeIcons ?? false;
   const profileFont = profile?.font || "Inter";
   const fontClass = `font-${profileFont.toLowerCase().replace(/\s+/g, "-")}`;
+  const avatarStyle = profile?.avatarStyle === "full" ? "full" : "circle";
 
-  // Glass card mode — when opacity <= 20, no fill at all, only border + blur
   const glassMode = opacity <= 20;
 
   const hexToRgb = (hex: string) => {
@@ -110,14 +110,8 @@ export default async function PublicProfile({
     return `${r}, ${g}, ${b}`;
   };
 
-  const cardBackground = glassMode
-    ? "transparent"                    // ← no fill, only outline
-    : `rgba(${hexToRgb(cardBg)}, ${opacity / 100})`;
-
-  const cardBorder = glassMode
-    ? `${accent}99`                    // brighter border in glass mode
-    : `${accent}55`;
-
+  const cardBackground = glassMode ? "transparent" : `rgba(${hexToRgb(cardBg)}, ${opacity / 100})`;
+  const cardBorder = glassMode ? `${accent}99` : `${accent}55`;
   const cardShadow = glassMode
     ? `0 30px 90px rgba(0,0,0,0.3), 0 0 60px -10px ${accent}44`
     : `0 30px 90px rgba(0,0,0,0.5), 0 0 50px -15px ${accent}66`;
@@ -136,16 +130,11 @@ export default async function PublicProfile({
     : isVideoBg
     ? {}
     : {
-        background:
-          profile?.backgroundGradient ||
-          `linear-gradient(160deg, ${cardBg}, #14141a)`,
+        background: profile?.backgroundGradient || `linear-gradient(160deg, ${cardBg}, #14141a)`,
       };
 
   return (
-    <main
-      className={`relative min-h-screen ${fontClass}`}
-      style={{ ...backgroundStyle, color: text }}
-    >
+    <main className={`relative min-h-screen ${fontClass}`} style={{ ...backgroundStyle, color: text }}>
       {profile?.showViewCount && <ViewCounter userId={user.id} />}
 
       <MouseTrail
@@ -154,44 +143,26 @@ export default async function PublicProfile({
         color={profile?.accentColor}
       />
 
-      {profile?.audioUrl && (
-        <MusicPlayer src={profile.audioUrl} accent={accent} />
-      )}
+      {profile?.audioUrl && <MusicPlayer src={profile.audioUrl} accent={accent} />}
 
       {isVideoBg && (
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="fixed inset-0 w-full h-full object-cover"
-          style={{ zIndex: 0 }}
-        >
+        <video autoPlay muted loop playsInline className="fixed inset-0 w-full h-full object-cover" style={{ zIndex: 0 }}>
           <source src={profile!.backgroundVideoUrl!} type="video/mp4" />
         </video>
       )}
 
       {(isImageBg || isVideoBg) && (
-        <div
-          className="pointer-events-none fixed inset-0"
-          style={{ background: "rgba(0,0,0,0.2)", zIndex: 1 }}
-        />
+        <div className="pointer-events-none fixed inset-0" style={{ background: "rgba(0,0,0,0.2)", zIndex: 1 }} />
       )}
 
       {profile?.effect === "glow" && (
         <div
           className="pointer-events-none absolute inset-0"
-          style={{
-            background: `radial-gradient(600px circle at 50% 0%, ${accent}33, transparent 60%)`,
-            zIndex: 2,
-          }}
+          style={{ background: `radial-gradient(600px circle at 50% 0%, ${accent}33, transparent 60%)`, zIndex: 2 }}
         />
       )}
 
-      <div
-        className="relative min-h-screen flex items-center justify-center px-4 py-14"
-        style={{ zIndex: 10 }}
-      >
+      <div className="relative min-h-screen flex items-center justify-center px-4 py-14" style={{ zIndex: 10 }}>
         <div
           className="w-full max-w-2xl rounded-3xl border overflow-hidden"
           style={{
@@ -204,21 +175,21 @@ export default async function PublicProfile({
           }}
         >
           <div className="px-8 pt-12 pb-8 flex flex-col items-center text-center">
-            {profile?.avatarUrl && (
-              <div
-                className="h-28 w-28 rounded-full overflow-hidden border-2"
-                style={{
-                  borderColor: accent,
-                  boxShadow: `0 0 40px -10px ${accent}`,
-                }}
-              >
+            {profile?.avatarUrl && avatarStyle === "circle" && (
+              <div className="h-28 w-28 rounded-full overflow-hidden border-2" style={{ borderColor: accent, boxShadow: `0 0 40px -10px ${accent}` }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={profile.avatarUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
+                <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
               </div>
+            )}
+
+            {profile?.avatarUrl && avatarStyle === "full" && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={profile.avatarUrl}
+                alt=""
+                className="max-h-40 w-auto max-w-full object-contain"
+                style={{ filter: `drop-shadow(0 0 20px ${accent}55)` }}
+              />
             )}
 
             <AnimatedTitle
@@ -235,19 +206,13 @@ export default async function PublicProfile({
             )}
 
             {profile?.bio && (
-              <p
-                className="mt-3 text-base max-w-md"
-                style={{ color: text, opacity: 0.85 }}
-              >
+              <p className="mt-3 text-base max-w-md" style={{ color: text, opacity: 0.85 }}>
                 {profile.bio}
               </p>
             )}
 
             {profile?.location && (
-              <p
-                className="mt-3 text-sm flex items-center gap-1"
-                style={{ color: text, opacity: 0.6 }}
-              >
+              <p className="mt-3 text-sm flex items-center gap-1" style={{ color: text, opacity: 0.6 }}>
                 <MapPin className="h-3.5 w-3.5" />
                 {profile.location}
               </p>
@@ -264,16 +229,9 @@ export default async function PublicProfile({
                       key={badgeId}
                       title={badge.name}
                       className="grid place-items-center transition-transform hover:scale-110"
-                      style={{
-                        filter: `drop-shadow(0 0 5px ${badgeColor}99)`,
-                      }}
+                      style={{ filter: `drop-shadow(0 0 5px ${badgeColor}99)` }}
                     >
-                      <BadgeIcon
-                        icon={badge.icon}
-                        className="h-6 w-6"
-                        color={badgeColor}
-                        strokeWidth={2}
-                      />
+                      <BadgeIcon icon={badge.icon} className="h-6 w-6" color={badgeColor} strokeWidth={2} />
                     </div>
                   );
                 })}
@@ -298,10 +256,7 @@ export default async function PublicProfile({
                         filter: `drop-shadow(0 0 8px rgba(255,255,255,0.9)) drop-shadow(0 0 18px rgba(255,255,255,0.45))`,
                       }}
                     >
-                      <platform.Icon
-                        className="h-10 w-10"
-                        style={{ color: iconColor }}
-                      />
+                      <platform.Icon className="h-10 w-10" style={{ color: iconColor }} />
                     </a>
                   );
                 })}
@@ -320,14 +275,8 @@ export default async function PublicProfile({
                     style={{
                       borderRadius: profile?.borderRadius ?? 16,
                       borderColor: `${accent}66`,
-                      background:
-                        profile?.buttonStyle === "solid"
-                          ? accent
-                          : "rgba(255,255,255,0.05)",
-                      color:
-                        profile?.buttonStyle === "solid"
-                          ? "#fff"
-                          : text,
+                      background: profile?.buttonStyle === "solid" ? accent : "rgba(255,255,255,0.05)",
+                      color: profile?.buttonStyle === "solid" ? "#fff" : text,
                     }}
                   >
                     {l.title}
@@ -340,22 +289,15 @@ export default async function PublicProfile({
               <div className="mt-8 flex items-center gap-3 rounded-full border border-white/10 bg-black/30 px-4 py-3 backdrop-blur-md">
                 <Music2 className="h-5 w-5" style={{ color: accent }} />
                 <div className="text-left">
-                  <div className="text-sm font-medium">
-                    {music.title || "Now playing"}
-                  </div>
-                  <div className="text-xs opacity-60">
-                    {music.artist || "Unknown"}
-                  </div>
+                  <div className="text-sm font-medium">{music.title || "Now playing"}</div>
+                  <div className="text-xs opacity-60">{music.artist || "Unknown"}</div>
                 </div>
               </div>
             )}
           </div>
 
           {profile?.showViewCount && (
-            <div
-              className="px-8 pb-5 flex items-center gap-2 text-xs"
-              style={{ color: text, opacity: 0.5 }}
-            >
+            <div className="px-8 pb-5 flex items-center gap-2 text-xs" style={{ color: text, opacity: 0.5 }}>
               <Eye className="h-3.5 w-3.5" />
               {profile.views.toLocaleString()} views
             </div>

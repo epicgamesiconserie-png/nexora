@@ -21,6 +21,7 @@ export async function GET() {
           bio: true,
           font: true,
           avatarUrl: true,
+          avatarStyle: true,
           backgroundUrl: true,
           backgroundVideoUrl: true,
           audioUrl: true,

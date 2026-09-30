@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import {
   saveAvatarUrl,
   saveCustomization,
+  saveAvatarStyle,
   removeAvatar,
   removeBackgroundImage,
   removeBackgroundVideo,
@@ -16,15 +17,16 @@ import {
 import { AnimatedTitle, type AnimatedTitleStyle } from "@/components/AnimatedTitle";
 import { MouseTrail, MouseTrailPreview, type MouseTrailStyle } from "@/components/MouseTrail";
 import {
-  LayoutDashboard, Link2, Palette, Music, BarChart3,
-  LogOut, Crown, Home, Award, X, ZoomIn, RotateCw,
+  LayoutDashboard, Link2, Palette, Music,
+  LogOut, Crown, Home, Award, X,
   MapPin, AlignLeft, Save, Sparkles, Check, Trash2,
   ExternalLink, MousePointer2, Snowflake, Star, Heart,
-  Droplet, Zap, Flame, Music2, Circle, Film, User,
+  Droplet, Zap, Flame, Music2, Film, User,
   Type, Droplets, Loader2, ShieldCheck, Image as ImageIcon,
 } from "lucide-react";
 
 type UploadType = "background" | "backgroundVideo" | "audio" | "avatar";
+type AvatarStyle = "circle" | "full";
 
 const ANIMATED_TITLES: { value: AnimatedTitleStyle; label: string; description: string }[] = [
   { value: "none",       label: "None",        description: "Plain text" },
@@ -64,6 +66,14 @@ const FONTS = [
   { value: "DM",         class: "font-dm",         label: "DM Sans" },
   { value: "Nunito",     class: "font-nunito",     label: "Nunito" },
 ];
+
+function isTransparencyCapable(file: File): boolean {
+  const type = file.type.toLowerCase();
+  const name = file.name.toLowerCase();
+  if (type === "image/png" || type === "image/webp" || type === "image/gif") return true;
+  if (name.endsWith(".png") || name.endsWith(".webp") || name.endsWith(".gif")) return true;
+  return false;
+}
 
 function rotateSize(width: number, height: number, rotation: number) {
   const rotRad = (rotation * Math.PI) / 180;
@@ -127,6 +137,9 @@ export default function CustomizePage() {
   const [removingBackground, setRemovingBackground] = useState(false);
   const [removingAudio, setRemovingAudio] = useState(false);
 
+  const [avatarStyle, setAvatarStyle] = useState<AvatarStyle>("circle");
+  const [savingAvatarStyle, setSavingAvatarStyle] = useState(false);
+
   const [cropImage, setCropImage] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -181,6 +194,7 @@ export default function CustomizePage() {
           setVolumeControl(data.profile.volumeControl ?? false);
           setAnimatedTitle((data.profile.animatedTitleStyle as AnimatedTitleStyle) || "none");
           setMouseTrail((data.profile.mouseTrail as MouseTrailStyle) || "none");
+          setAvatarStyle(data.profile.avatarStyle === "full" ? "full" : "circle");
 
           setUploads({
             background: data.profile.backgroundUrl || null,
@@ -221,6 +235,12 @@ export default function CustomizePage() {
     if (!file || !type) return;
 
     if (type === "avatar") {
+      if (isTransparencyCapable(file) || avatarStyle === "full") {
+        await uploadFile(file, "avatar");
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = () => setCropImage(reader.result as string);
       reader.readAsDataURL(file);
@@ -229,7 +249,6 @@ export default function CustomizePage() {
     }
     await uploadFile(file, type);
   };
-
   async function uploadFile(file: Blob, type: UploadType, filename?: string) {
     setUploading(type);
     try {
@@ -365,6 +384,21 @@ export default function CustomizePage() {
     }
   }
 
+  async function handleAvatarStyleChange(next: AvatarStyle) {
+    if (next === avatarStyle) return;
+    setSavingAvatarStyle(true);
+    const prev = avatarStyle;
+    setAvatarStyle(next);
+    const res = await saveAvatarStyle(next);
+    setSavingAvatarStyle(false);
+    if (!res.success) {
+      toast.error(res.error || "Failed to save avatar style");
+      setAvatarStyle(prev);
+    } else {
+      toast.success(`Avatar style: ${next === "full" ? "Full image" : "Circle"}`);
+    }
+  }
+
   async function handleSaveCustomization() {
     setSavingCustomization(true);
     const result = await saveCustomization({
@@ -404,7 +438,6 @@ export default function CustomizePage() {
 
   const currentTrail = MOUSE_TRAILS.find((t) => t.value === mouseTrail);
   const currentFont = FONTS.find((f) => f.value === profileFont) || FONTS[0];
-
   return (
     <div className="flex min-h-screen bg-black text-white">
       <input
@@ -595,6 +628,44 @@ export default function CustomizePage() {
                   </p>
                 </div>
 
+                <div className="md:col-span-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-zinc-400" />
+                      <span className="text-sm font-semibold text-white">Avatar Style</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAvatarStyleChange("circle")}
+                        disabled={savingAvatarStyle}
+                        className={`h-9 px-4 rounded-lg text-xs font-semibold border transition ${
+                          avatarStyle === "circle"
+                            ? "border-purple-500 bg-purple-500/10 text-white"
+                            : "border-white/10 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06]"
+                        } disabled:opacity-50`}
+                      >
+                        Circle
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAvatarStyleChange("full")}
+                        disabled={savingAvatarStyle}
+                        className={`h-9 px-4 rounded-lg text-xs font-semibold border transition ${
+                          avatarStyle === "full"
+                            ? "border-purple-500 bg-purple-500/10 text-white"
+                            : "border-white/10 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06]"
+                        } disabled:opacity-50`}
+                      >
+                        Full Image
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 mt-1">
+                    Use <strong>Full Image</strong> for transparent PNGs and GIFs — your image won&apos;t be cropped.
+                  </p>
+                </div>
+
                 <Slider label="Profile Opacity" value={profileOpacity} min={0} max={100} step={1} suffix="%" onChange={setProfileOpacity} />
                 <Slider label="Profile Blur" value={profileBlur} min={0} max={50} step={1} suffix="px" onChange={setProfileBlur} />
 
@@ -688,8 +759,6 @@ export default function CustomizePage() {
           </section>
         </div>
       </main>
-
-      {/* ANIMATED TITLE MODAL */}
       {animatedTitleModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
@@ -732,7 +801,6 @@ export default function CustomizePage() {
         </div>
       )}
 
-      {/* MOUSE TRAIL MODAL */}
       {mouseTrailModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
@@ -785,7 +853,6 @@ export default function CustomizePage() {
         </div>
       )}
 
-      {/* FONT MODAL */}
       {fontModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
@@ -833,7 +900,6 @@ export default function CustomizePage() {
 
       <MouseTrail key={mouseTrail} style={mouseTrail} color={accentColor} />
 
-      {/* CROPPER MODAL */}
       {cropImage && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}>

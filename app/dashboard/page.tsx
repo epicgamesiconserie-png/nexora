@@ -100,7 +100,6 @@ export default async function DashboardPage() {
           <Link href="/" className="px-2 py-3 mb-6"><SmokeLogoWordmark /></Link>
           <nav className="flex flex-col gap-1 flex-1">
             <SidebarItem href="/dashboard" Icon={LayoutDashboard} label="Overview" active />
-            <SidebarItem href="/dashboard/analytics" Icon={BarChart3} label="Analytics" />
             <SidebarItem href="/dashboard/customize" Icon={Palette} label="Customize" />
             <SidebarItem href="/dashboard/links" Icon={Link2} label="Links" />
             <SidebarItem href="/dashboard/music" Icon={Music} label="Music" />

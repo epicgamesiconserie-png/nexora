@@ -88,7 +88,6 @@ export default function BadgesPage() {
 
   const sidebar = [
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
     { name: "Customize", href: "/dashboard/customize", icon: Palette },
     { name: "Links", href: "/dashboard/links", icon: Link2 },
     { name: "Music", href: "/dashboard/music", icon: Music },

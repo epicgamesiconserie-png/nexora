@@ -17,7 +17,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (username.length < 1) {
+    if (username.length < 3) {
       setStatus("idle");
       setMsg("");
       return;
@@ -194,7 +194,7 @@ export default function RegisterPage() {
               >
                 {username.length >= 1 && msg
                   ? (status === "available" ? "✓ " : "✕ ") + msg
-                  : "1–20 characters · letters, numbers, _ and -"}
+                  : "3–20 characters · letters, numbers, _ and -"}
               </p>
             </div>
 

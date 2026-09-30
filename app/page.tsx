@@ -294,7 +294,7 @@ export default function Home() {
           </Link>
         </div>
 
-        <p className="mt-4 text-xs text-zinc-500">Free forever · No credit card required</p>
+        <p className="mt-4 text-xs text-zinc-500"></p>
       </section>
 
       {/* Devices bar with mountains + snow */}

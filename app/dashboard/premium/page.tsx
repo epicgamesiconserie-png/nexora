@@ -6,9 +6,9 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { redeemPremiumCode } from "./actions";
 import {
-  LayoutDashboard, Link2, Palette, Music, BarChart3,
+  LayoutDashboard, Link2, Palette, Music,
   LogOut, Crown, Home, Award, ExternalLink, Ticket, Check,
-  ShieldCheck, Clock, Gem, Gift, CreditCard, Loader2,
+  ShieldCheck, Gem, CreditCard, Loader2,
 } from "lucide-react";
 
 function PremiumPageInner() {
@@ -47,7 +47,6 @@ function PremiumPageInner() {
 
   const sidebar = [
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
     { name: "Customize", href: "/dashboard/customize", icon: Palette },
     { name: "Links", href: "/dashboard/links", icon: Link2 },
     { name: "Music", href: "/dashboard/music", icon: Music },
@@ -250,7 +249,7 @@ function PremiumPageInner() {
                   </div>
                   <p className="text-sm text-yellow-200/60 mt-1">Unlock everything. Pay once.</p>
                   <div className="mt-6 flex items-end gap-1.5">
-                    <span className="text-5xl font-bold tracking-tight text-yellow-50">7.99€</span>
+                    <span className="text-5xl font-bold tracking-tight text-yellow-50">5.80€</span>
                     <span className="text-sm text-yellow-200/50 mb-2">/lifetime</span>
                   </div>
                 </div>
@@ -300,7 +299,7 @@ function PremiumPageInner() {
                     ) : (
                       <>
                         <CreditCard className="h-4 w-4" />
-                        Buy Premium — 7.99€
+                        Buy Premium — 5.80€
                       </>
                     )}
                   </button>

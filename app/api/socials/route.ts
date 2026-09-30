@@ -35,6 +35,18 @@ export async function POST(request: Request) {
     );
   }
 
+  // === One per platform check ===
+  const alreadyHave = await prisma.social.findFirst({
+    where: { userId: session.userId, platform },
+    select: { id: true },
+  });
+  if (alreadyHave) {
+    return NextResponse.json(
+      { error: `You already have a ${platformLabel(platform)} link. Delete it first to add a new one.` },
+      { status: 409 }
+    );
+  }
+
   // === URL / platform match check ===
   if (!urlMatchesPlatform(platform, url)) {
     return NextResponse.json(

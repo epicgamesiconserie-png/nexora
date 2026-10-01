@@ -8,7 +8,6 @@ import { BadgeIcon } from "@/components/BadgeIcon";
 import { ViewCounter } from "@/components/ViewCounter";
 import { MouseTrail, type MouseTrailStyle } from "@/components/MouseTrail";
 import { MusicPlayer } from "@/components/MusicPlayer";
-import { WelcomeGate } from "@/components/WelcomeGate";
 import { BADGES } from "@/lib/badges";
 import {
   FaYoutube, FaTwitch, FaTiktok, FaDiscord, FaFacebook, FaSpotify,
@@ -134,15 +133,8 @@ export default async function PublicProfile({
         background: profile?.backgroundGradient || `linear-gradient(160deg, ${cardBg}, #14141a)`,
       };
 
-  const showWelcome =
-    !!profile?.welcomeEnabled && !!profile?.welcomeText && !!profile?.welcomeText.trim();
-
   return (
     <main className={`relative min-h-screen ${fontClass}`} style={{ ...backgroundStyle, color: text }}>
-      {showWelcome && (
-        <WelcomeGate text={profile!.welcomeText!} accent={accent} />
-      )}
-
       {profile?.showViewCount && <ViewCounter userId={user.id} />}
 
       <MouseTrail
@@ -227,29 +219,19 @@ export default async function PublicProfile({
             )}
 
             {profile?.badges && profile.badges.length > 0 && (
-              <div className="mt-6 flex flex-wrap justify-center gap-4">
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {profile.badges.map((badgeId: string) => {
                   const badge = BADGES.find((b) => b.id === badgeId);
                   if (!badge) return null;
+                  const badgeColor = monochrome ? text : badge.color;
                   return (
-                    <div key={badgeId} className="relative group">
-                      <span
-                        className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 whitespace-nowrap text-xs font-medium opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200"
-                        style={{
-                          color: text,
-                          textShadow: "0 0 8px rgba(0,0,0,0.9), 0 0 4px rgba(0,0,0,0.8)",
-                        }}
-                      >
-                        {badge.name}
-                      </span>
-                      <div className="grid place-items-center transition-transform hover:scale-110">
-                        <BadgeIcon
-                          icon={badge.icon}
-                          className="h-9 w-9"
-                          color="#ffffff"
-                          strokeWidth={2.5}
-                        />
-                      </div>
+                    <div
+                      key={badgeId}
+                      title={badge.name}
+                      className="grid place-items-center transition-transform hover:scale-110"
+                      style={{ filter: `drop-shadow(0 0 5px ${badgeColor}99)` }}
+                    >
+                      <BadgeIcon icon={badge.icon} className="h-6 w-6" color={badgeColor} strokeWidth={2} />
                     </div>
                   );
                 })}

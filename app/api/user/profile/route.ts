@@ -1,41 +1,59 @@
-import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
 export async function GET() {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Not logged in" }, { status: 401 });
   }
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
     select: {
-      id: true,
       username: true,
-      email: true,
       role: true,
       isPremium: true,
       premiumUntil: true,
       createdAt: true,
+      profile: {
+        select: {
+          bio: true,
+          font: true,
+          avatarUrl: true,
+          avatarStyle: true,
+          backgroundUrl: true,
+          backgroundVideoUrl: true,
+          audioUrl: true,
+          cursorUrl: true,
+          accentColor: true,
+          textColor: true,
+          backgroundColor: true,
+          location: true,
+          profileOpacity: true,
+          blur: true,
+          backgroundType: true,
+          effect: true,
+          monochromeIcons: true,
+          animatedTitle: true,
+          animatedTitleStyle: true,
+          swapBoxColors: true,
+          volumeControl: true,
+          badges: true,
+          unlockedBadges: true,
+          mouseTrail: true,
+          views: true,
+        },
+      },
     },
   });
 
-  if (!user) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  // flat shape — matches what every dashboard page expects
   return NextResponse.json({
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    role: user.role,
-    isPremium: user.isPremium,
-    premiumUntil: user.premiumUntil,
-    createdAt: user.createdAt,
+    username: user?.username,
+    role: user?.role,
+    isPremium: user?.isPremium,
+    premiumUntil: user?.premiumUntil,
+    createdAt: user?.createdAt,
+    profile: user?.profile,
   });
 }

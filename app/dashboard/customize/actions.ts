@@ -150,6 +150,8 @@ export type CustomizationData = {
   swapBoxColors: boolean;
   volumeControl: boolean;
   mouseTrail: string;
+  welcomeEnabled: boolean;
+  welcomeText: string;
 };
 
 export async function saveCustomization(
@@ -159,6 +161,16 @@ export async function saveCustomization(
   if (!session) return { success: false, error: "Not logged in" };
 
   try {
+    // Welcome screen is premium-only. Strip it if the user isn't premium.
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { isPremium: true },
+    });
+    const isPremium = user?.isPremium === true;
+
+    const welcomeEnabled = isPremium ? !!data.welcomeEnabled : false;
+    const welcomeText = isPremium ? (data.welcomeText || null) : null;
+
     await prisma.profile.upsert({
       where: { userId: session.userId },
       update: {
@@ -177,6 +189,8 @@ export async function saveCustomization(
         swapBoxColors: data.swapBoxColors,
         volumeControl: data.volumeControl,
         mouseTrail: data.mouseTrail,
+        welcomeEnabled,
+        welcomeText,
       },
       create: {
         userId: session.userId,
@@ -195,6 +209,8 @@ export async function saveCustomization(
         swapBoxColors: data.swapBoxColors,
         volumeControl: data.volumeControl,
         mouseTrail: data.mouseTrail,
+        welcomeEnabled,
+        welcomeText,
       },
     });
 

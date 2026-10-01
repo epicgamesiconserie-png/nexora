@@ -23,6 +23,7 @@ import {
   ExternalLink, MousePointer2, Snowflake, Star, Heart,
   Droplet, Zap, Flame, Music2, Film, User,
   Type, Droplets, Loader2, ShieldCheck, Image as ImageIcon, Lock,
+  DoorOpen,
 } from "lucide-react";
 
 type UploadType = "background" | "backgroundVideo" | "audio" | "avatar";
@@ -172,6 +173,11 @@ export default function CustomizePage() {
   const [mouseTrailModalOpen, setMouseTrailModalOpen] = useState(false);
   const [fontModalOpen, setFontModalOpen] = useState(false);
 
+  // Welcome Screen
+  const [welcomeEnabled, setWelcomeEnabled] = useState(false);
+  const [welcomeText, setWelcomeText] = useState("");
+  const [welcomeModalOpen, setWelcomeModalOpen] = useState(false);
+
   const [savingCustomization, setSavingCustomization] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -202,6 +208,8 @@ export default function CustomizePage() {
           setVolumeControl(data.profile.volumeControl ?? false);
           setAnimatedTitle((data.profile.animatedTitleStyle as AnimatedTitleStyle) || "none");
           setMouseTrail((data.profile.mouseTrail as MouseTrailStyle) || "none");
+          setWelcomeEnabled(data.profile.welcomeEnabled ?? false);
+          setWelcomeText(data.profile.welcomeText || "");
           setAvatarStyle(data.profile.avatarStyle === "full" ? "full" : "circle");
 
           setUploads({
@@ -432,6 +440,8 @@ export default function CustomizePage() {
       swapBoxColors,
       volumeControl,
       mouseTrail,
+      welcomeEnabled,
+      welcomeText,
     });
     setSavingCustomization(false);
     if (result.success) toast.success("Customization saved");
@@ -757,6 +767,52 @@ export default function CustomizePage() {
 
                   <button
                     type="button"
+                    onClick={() => {
+                      if (!isPremium) {
+                        toast.error("Welcome Screen is a Premium feature");
+                        router.push("/dashboard/premium");
+                        return;
+                      }
+                      setWelcomeModalOpen(true);
+                    }}
+                    className={`flex items-center justify-between rounded-xl border px-4 py-3 transition text-left md:col-span-2 ${
+                      isPremium
+                        ? "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+                        : "border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <DoorOpen
+                        className={`h-4 w-4 ${
+                          isPremium ? "text-zinc-400" : "text-yellow-400/70"
+                        }`}
+                      />
+                      <span
+                        className={`text-sm font-semibold ${
+                          isPremium ? "text-white" : "text-yellow-100/80"
+                        }`}
+                      >
+                        Welcome Screen
+                      </span>
+                      {!isPremium && (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/20 border border-yellow-500/40">
+                          <Lock className="h-2.5 w-2.5 text-yellow-400" />
+                          <span className="text-[8px] font-bold text-yellow-400 uppercase tracking-wider">
+                            Premium
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-zinc-400">
+                      {welcomeEnabled && welcomeText
+                        ? welcomeText.slice(0, 24) +
+                          (welcomeText.length > 24 ? "…" : "")
+                        : "None"}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => setFontModalOpen(true)}
                     className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left md:col-span-2"
                   >
@@ -913,6 +969,89 @@ export default function CustomizePage() {
               <p className="text-xs text-zinc-500">Each preview shows the trail animating live.</p>
               <button onClick={() => setMouseTrailModalOpen(false)}
                 className="h-11 px-5 rounded-xl bg-white text-black hover:bg-zinc-200 font-semibold transition">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {welcomeModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
+          onClick={() => setWelcomeModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-2xl border border-white/10 overflow-hidden"
+            style={{ background: "rgba(15,15,20,0.98)", boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <h2 className="text-lg font-bold">Welcome Screen</h2>
+              <button
+                onClick={() => setWelcomeModalOpen(false)}
+                className="text-zinc-500 hover:text-white transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <button
+                type="button"
+                onClick={() => setWelcomeEnabled(!welcomeEnabled)}
+                className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left"
+              >
+                <span className="text-sm font-semibold text-white">
+                  Enable Welcome Screen
+                </span>
+                <span
+                  className={`relative h-6 w-11 rounded-full transition ${
+                    welcomeEnabled ? "bg-purple-500" : "bg-white/10"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${
+                      welcomeEnabled ? "left-[22px]" : "left-0.5"
+                    }`}
+                  />
+                </span>
+              </button>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-2">
+                  Message
+                </label>
+                <textarea
+                  value={welcomeText}
+                  onChange={(e) => setWelcomeText(e.target.value)}
+                  placeholder="Welcome to my page. Click to continue."
+                  maxLength={160}
+                  rows={4}
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm outline-none focus:border-white/30 placeholder:text-white/30 resize-none"
+                />
+                <p className="text-[10px] text-zinc-600 mt-1">
+                  {welcomeText.length}/160
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-white/5 bg-black/40 p-4 text-center">
+                <p
+                  className="text-lg font-bold"
+                  style={{ textShadow: `0 0 20px ${accentColor}66` }}
+                >
+                  {welcomeText || "Your welcome message"}
+                </p>
+                <p className="mt-3 text-[10px] uppercase tracking-[0.25em] text-white/40 font-semibold">
+                  Click anywhere to enter
+                </p>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-white/10 flex justify-end">
+              <button
+                onClick={() => setWelcomeModalOpen(false)}
+                className="h-11 px-5 rounded-xl bg-white text-black hover:bg-zinc-200 font-semibold transition"
+              >
                 Done
               </button>
             </div>

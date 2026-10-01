@@ -24,8 +24,8 @@ model User {
   sessions       Session[]
   passwordResets PasswordReset[]
   music          Music?
-  premiumCodes   PremiumCode[] @relation("PremiumCodeCreator")
-  usedCodes      PremiumCode[] @relation("PremiumCodeUser")
+  premiumCodes   PremiumCode[]   @relation("PremiumCodeCreator")
+  usedCodes      PremiumCode[]   @relation("PremiumCodeUser")
 
   @@map("users")
 }
@@ -66,6 +66,8 @@ model Profile {
   swapBoxColors      Boolean  @default(false) @map("swap_box_colors")
   volumeControl      Boolean  @default(false) @map("volume_control")
   mouseTrail         String   @default("none") @map("mouse_trail")
+  welcomeEnabled     Boolean  @default(false) @map("welcome_enabled")
+  welcomeText        String?  @map("welcome_text")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 

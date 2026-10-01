@@ -44,7 +44,10 @@ export function WelcomeGate({
       });
     }
     setLeaving(true);
-    setTimeout(() => setVisible(false), 350);
+    setTimeout(() => {
+      setVisible(false);
+      setLeaving(false);
+    }, 350);
   };
 
   if (!visible && !leaving) return null;
@@ -59,6 +62,7 @@ export function WelcomeGate({
         WebkitBackdropFilter: "blur(16px)",
         opacity: leaving ? 0 : 1,
         cursor: "pointer",
+        pointerEvents: leaving ? "none" : "auto",
       }}
       onClick={dismiss}
       role="button"

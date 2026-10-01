@@ -152,6 +152,8 @@ export type CustomizationData = {
   mouseTrail: string;
   welcomeEnabled: boolean;
   welcomeText: string;
+  tiltEnabled: boolean;
+  tiltStrength: number;
 };
 
 export async function saveCustomization(
@@ -191,6 +193,8 @@ export async function saveCustomization(
         mouseTrail: data.mouseTrail,
         welcomeEnabled,
         welcomeText,
+        tiltEnabled: data.tiltEnabled,
+        tiltStrength: data.tiltStrength,
       },
       create: {
         userId: session.userId,
@@ -211,6 +215,8 @@ export async function saveCustomization(
         mouseTrail: data.mouseTrail,
         welcomeEnabled,
         welcomeText,
+        tiltEnabled: data.tiltEnabled,
+        tiltStrength: data.tiltStrength,
       },
     });
 

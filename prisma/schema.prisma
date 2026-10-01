@@ -68,6 +68,8 @@ model Profile {
   mouseTrail         String   @default("none") @map("mouse_trail")
   welcomeEnabled     Boolean  @default(false) @map("welcome_enabled")
   welcomeText        String?  @map("welcome_text")
+  tiltEnabled        Boolean  @default(false) @map("tilt_enabled")
+  tiltStrength       Int      @default(12)    @map("tilt_strength")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 

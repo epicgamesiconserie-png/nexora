@@ -9,6 +9,7 @@ import { ViewCounter } from "@/components/ViewCounter";
 import { MouseTrail, type MouseTrailStyle } from "@/components/MouseTrail";
 import { MusicPlayer } from "@/components/MusicPlayer";
 import { WelcomeGate } from "@/components/WelcomeGate";
+import { TiltCard } from "@/components/TiltCard";
 import { BADGES } from "@/lib/badges";
 import {
   FaYoutube, FaTwitch, FaTiktok, FaDiscord, FaFacebook, FaSpotify,
@@ -195,7 +196,7 @@ export default async function PublicProfile({
       )}
 
       <div className="relative min-h-screen flex items-center justify-center px-4 py-14" style={{ zIndex: 10 }}>
-        <div
+        <TiltCard
           className="w-full max-w-2xl rounded-3xl border overflow-hidden"
           style={{
             background: cardBackground,
@@ -205,6 +206,8 @@ export default async function PublicProfile({
             boxShadow: cardShadow,
             color: text,
           }}
+          maxTilt={12}
+          scale={1.02}
         >
           <div className="px-8 pt-12 pb-8 flex flex-col items-center text-center">
             {profile?.avatarUrl && avatarStyle === "circle" && (
@@ -334,7 +337,7 @@ export default async function PublicProfile({
               {profile.views.toLocaleString()} views
             </div>
           )}
-        </div>
+        </TiltCard>
       </div>
     </main>
   );

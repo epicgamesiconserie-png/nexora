@@ -23,7 +23,7 @@ import {
   ExternalLink, MousePointer2, Snowflake, Star, Heart,
   Droplet, Zap, Flame, Music2, Film, User,
   Type, Droplets, Loader2, ShieldCheck, Image as ImageIcon, Lock,
-  DoorOpen,
+  DoorOpen, Box, // ← NEW: Box icon for tilt
 } from "lucide-react";
 
 type UploadType = "background" | "backgroundVideo" | "audio" | "avatar";
@@ -178,6 +178,10 @@ export default function CustomizePage() {
   const [welcomeText, setWelcomeText] = useState("");
   const [welcomeModalOpen, setWelcomeModalOpen] = useState(false);
 
+  // 3D Tilt  ← NEW
+  const [tiltEnabled, setTiltEnabled] = useState(false);
+  const [tiltStrength, setTiltStrength] = useState(12);
+
   const [savingCustomization, setSavingCustomization] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -211,6 +215,9 @@ export default function CustomizePage() {
           setWelcomeEnabled(data.profile.welcomeEnabled ?? false);
           setWelcomeText(data.profile.welcomeText || "");
           setAvatarStyle(data.profile.avatarStyle === "full" ? "full" : "circle");
+          // ← NEW
+          setTiltEnabled(data.profile.tiltEnabled ?? false);
+          setTiltStrength(data.profile.tiltStrength ?? 12);
 
           setUploads({
             background: data.profile.backgroundUrl || null,
@@ -442,6 +449,9 @@ export default function CustomizePage() {
       mouseTrail,
       welcomeEnabled,
       welcomeText,
+      // ← NEW
+      tiltEnabled,
+      tiltStrength,
     });
     setSavingCustomization(false);
     if (result.success) toast.success("Customization saved");
@@ -736,6 +746,35 @@ export default function CustomizePage() {
                   <Toggle label="Monochrome Icons" value={monochromeIcons} onChange={setMonochromeIcons} />
                   <Toggle label="Swap Box Colors" value={swapBoxColors} onChange={setSwapBoxColors} />
                   <Toggle label="Volume Control" value={volumeControl} onChange={setVolumeControl} />
+
+                  {/* ← NEW: 3D Tilt toggle */}
+                  <Toggle
+                    label="3D Tilt on Hover"
+                    value={tiltEnabled}
+                    onChange={setTiltEnabled}
+                  />
+
+                  {/* ← NEW: Tilt strength slider, only shows when enabled */}
+                  {tiltEnabled && (
+                    <div className="md:col-span-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Box className="h-4 w-4 text-zinc-400" />
+                        <span className="text-sm font-semibold text-white">Tilt Strength</span>
+                      </div>
+                      <Slider
+                        label="Degrees"
+                        value={tiltStrength}
+                        min={4}
+                        max={20}
+                        step={1}
+                        suffix="°"
+                        onChange={setTiltStrength}
+                      />
+                      <p className="text-[10px] text-zinc-500 mt-2">
+                        How far the card tilts when you hover over it. 4° is subtle, 20° is dramatic.
+                      </p>
+                    </div>
+                  )}
 
                   <button
                     type="button"

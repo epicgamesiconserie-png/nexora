@@ -8,6 +8,7 @@ import { BadgeIcon } from "@/components/BadgeIcon";
 import { ViewCounter } from "@/components/ViewCounter";
 import { MouseTrail, type MouseTrailStyle } from "@/components/MouseTrail";
 import { MusicPlayer } from "@/components/MusicPlayer";
+import { WelcomeGate } from "@/components/WelcomeGate";
 import { BADGES } from "@/lib/badges";
 import {
   FaYoutube, FaTwitch, FaTiktok, FaDiscord, FaFacebook, FaSpotify,
@@ -78,6 +79,8 @@ export default async function PublicProfile({
     select: {
       id: true,
       username: true,
+      isPremium: true,
+      premiumUntil: true,
       profile: true,
       links: { where: { enabled: true }, orderBy: { position: "asc" } },
       socials: { orderBy: { position: "asc" } },
@@ -133,8 +136,27 @@ export default async function PublicProfile({
         background: profile?.backgroundGradient || `linear-gradient(160deg, ${cardBg}, #14141a)`,
       };
 
+  const isPremium =
+    !!user.isPremium &&
+    (!user.premiumUntil || new Date(user.premiumUntil) > new Date());
+
+  const showWelcome =
+    isPremium &&
+    !!profile?.welcomeEnabled &&
+    !!profile?.welcomeText &&
+    !!profile.welcomeText.trim();
+
   return (
     <main className={`relative min-h-screen ${fontClass}`} style={{ ...backgroundStyle, color: text }}>
+      {showWelcome && (
+        <WelcomeGate
+          text={profile!.welcomeText!}
+          accent={accent}
+          avatarUrl={profile?.avatarUrl}
+          username={user.username}
+        />
+      )}
+
       {profile?.showViewCount && <ViewCounter userId={user.id} />}
 
       <MouseTrail

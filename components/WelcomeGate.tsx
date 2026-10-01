@@ -4,74 +4,106 @@ import { useEffect, useState } from "react";
 
 export function WelcomeGate({
   text,
-  accent = "#a855f7",
+  accent,
+  avatarUrl,
+  username,
 }: {
   text: string;
-  accent?: string;
+  accent: string;
+  avatarUrl?: string | null;
+  username?: string;
 }) {
-  const [visible, setVisible] = useState(true);
-  const [fading, setFading] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    if (!visible) return;
+    const t = setTimeout(() => setVisible(true), 50);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [visible]);
+  }, []);
 
-  function dismiss() {
-    if (fading) return;
-    setFading(true);
-    // Unmute music on the same click
-    window.dispatchEvent(new CustomEvent("welcome-dismissed"));
-    setTimeout(() => setVisible(false), 600);
-  }
+  const dismiss = () => {
+    setLeaving(true);
+    setTimeout(() => setVisible(false), 350);
+  };
 
-  if (!visible) return null;
+  if (!visible && !leaving) return null;
 
   return (
     <div
+      className="fixed inset-0 grid place-items-center px-6 transition-opacity duration-300"
+      style={{
+        zIndex: 9999,
+        background: "rgba(0,0,0,0.85)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        opacity: leaving ? 0 : 1,
+      }}
+      onClick={dismiss}
       role="button"
       tabIndex={0}
-      aria-label="Enter profile"
-      onClick={dismiss}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          dismiss();
-        }
-      }}
-      className="fixed inset-0 z-[200] flex items-center justify-center px-6 cursor-pointer transition-opacity duration-[600ms] ease-out"
-      style={{
-        background: "rgba(0,0,0,0.85)",
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
-        opacity: fading ? 0 : 1,
+        if (e.key === "Enter" || e.key === " ") dismiss();
       }}
     >
       <div
-        className="max-w-lg w-full text-center"
+        className="flex flex-col items-center text-center max-w-md w-full transition-all duration-500"
         style={{
-          transform: fading ? "scale(0.96)" : "scale(1)",
-          transition: "transform 600ms cubic-bezier(.2,.8,.25,1)",
+          transform: leaving ? "scale(0.96)" : "scale(1)",
+          opacity: leaving ? 0 : 1,
         }}
+        onClick={(e) => e.stopPropagation()}
       >
+        {avatarUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt=""
+            className="h-24 w-24 rounded-full object-cover mb-6"
+            style={{
+              border: `2px solid ${accent}`,
+              boxShadow: `0 0 40px -8px ${accent}`,
+            }}
+          />
+        )}
+
         <p
-          className="text-2xl md:text-3xl font-bold leading-snug whitespace-pre-wrap break-words"
+          className="text-2xl md:text-3xl font-bold tracking-tight mb-2"
           style={{
-            color: "#ffffff",
-            textShadow: `0 0 24px ${accent}66`,
+            color: "#fff",
+            textShadow: `0 0 20px ${accent}88, 0 0 40px ${accent}44`,
           }}
         >
           {text}
         </p>
-        <p
-          className="mt-8 text-xs uppercase tracking-[0.25em] font-semibold"
-          style={{ color: "#ffffff", opacity: 0.45 }}
+
+        {username && (
+          <p className="text-sm mb-8" style={{ color: accent, opacity: 0.7 }}>
+            @{username}
+          </p>
+        )}
+
+        <button
+          onClick={dismiss}
+          className="mt-6 h-11 px-8 rounded-xl font-bold transition-transform hover:scale-105"
+          style={{
+            background: accent,
+            color: "#fff",
+            boxShadow: `0 8px 24px -8px ${accent}`,
+          }}
         >
-          Click anywhere to enter
+          Enter
+        </button>
+
+        <p className="mt-6 text-xs text-white/40">
+          Click anywhere to continue
         </p>
       </div>
     </div>

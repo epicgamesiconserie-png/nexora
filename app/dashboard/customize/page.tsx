@@ -23,7 +23,7 @@ import {
   ExternalLink, MousePointer2, Snowflake, Star, Heart,
   Droplet, Zap, Flame, Music2, Film, User,
   Type, Droplets, Loader2, ShieldCheck, Image as ImageIcon, Lock,
-  DoorOpen, Box, // ← NEW: Box icon for tilt
+  DoorOpen, Box, AlignStartVertical,
 } from "lucide-react";
 
 type UploadType = "background" | "backgroundVideo" | "audio" | "avatar";
@@ -101,25 +101,20 @@ async function getCroppedImg(
     img.onerror = reject;
     img.src = imageSrc;
   });
-
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d")!;
   const rotRad = (rotation * Math.PI) / 180;
   const { width: bBoxWidth, height: bBoxHeight } = rotateSize(image.width, image.height, rotation);
-
   canvas.width = bBoxWidth;
   canvas.height = bBoxHeight;
-
   ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
   ctx.rotate(rotRad);
   ctx.translate(-image.width / 2, -image.height / 2);
   ctx.drawImage(image, 0, 0);
-
   const data = ctx.getImageData(pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height);
   canvas.width = pixelCrop.width;
   canvas.height = pixelCrop.height;
   ctx.putImageData(data, 0, 0);
-
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error("Canvas is empty"))),
@@ -173,24 +168,32 @@ export default function CustomizePage() {
   const [mouseTrailModalOpen, setMouseTrailModalOpen] = useState(false);
   const [fontModalOpen, setFontModalOpen] = useState(false);
 
-  // Welcome Screen
   const [welcomeEnabled, setWelcomeEnabled] = useState(false);
   const [welcomeText, setWelcomeText] = useState("");
   const [welcomeModalOpen, setWelcomeModalOpen] = useState(false);
 
-  // 3D Tilt  ← NEW
   const [tiltEnabled, setTiltEnabled] = useState(false);
   const [tiltStrength, setTiltStrength] = useState(12);
+
+  const [alignLeft, setAlignLeft] = useState(false);
+
+  const [spotifyStyleEnabled, setSpotifyStyleEnabled] = useState(false);
+  const [audioTitle, setAudioTitle] = useState("");
+  const [audioArtist, setAudioArtist] = useState("");
+  const [audioCoverUrl, setAudioCoverUrl] = useState("");
+  const [spotifyModalOpen, setSpotifyModalOpen] = useState(false);
 
   const [savingCustomization, setSavingCustomization] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const currentUploadType = useRef<UploadType | null>(null);
 
   const glassCard = profileOpacity <= 20;
 
-  useEffect(() => {
-    fetch("/api/user/profile")
+  // ---- profile loader — callable from anywhere ----
+  const loadProfile = useCallback(() => {
+    fetch("/api/user/profile", { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
         if (data.username) setUsername(data.username);
@@ -215,9 +218,13 @@ export default function CustomizePage() {
           setWelcomeEnabled(data.profile.welcomeEnabled ?? false);
           setWelcomeText(data.profile.welcomeText || "");
           setAvatarStyle(data.profile.avatarStyle === "full" ? "full" : "circle");
-          // ← NEW
           setTiltEnabled(data.profile.tiltEnabled ?? false);
           setTiltStrength(data.profile.tiltStrength ?? 12);
+          setAlignLeft(data.profile.alignLeft ?? false);
+          setSpotifyStyleEnabled(data.profile.spotifyStyleEnabled ?? false);
+          setAudioTitle(data.profile.audioTitle || "");
+          setAudioArtist(data.profile.audioArtist || "");
+          setAudioCoverUrl(data.profile.audioCoverUrl || "");
 
           setUploads({
             background: data.profile.backgroundUrl || null,
@@ -229,6 +236,18 @@ export default function CustomizePage() {
       })
       .catch(() => {});
   }, []);
+
+  // initial load + refetch when restored from browser's back-forward cache
+  useEffect(() => {
+    loadProfile();
+
+    const handlePageShow = (e: PageTransitionEvent) => {
+      // e.persisted === true → page came back from bfcache (back button)
+      if (e.persisted) loadProfile();
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, [loadProfile]);
 
   const getSidebarLinks = () => [
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard, external: false },
@@ -261,14 +280,12 @@ export default function CustomizePage() {
     const file = e.target.files?.[0];
     const type = currentUploadType.current;
     if (!file || !type) return;
-
     if (type === "avatar") {
       if (isTransparencyCapable(file) || avatarStyle === "full") {
         await uploadFile(file, "avatar");
         if (fileInputRef.current) fileInputRef.current.value = "";
         return;
       }
-
       const reader = new FileReader();
       reader.onload = () => setCropImage(reader.result as string);
       reader.readAsDataURL(file);
@@ -282,31 +299,23 @@ export default function CustomizePage() {
     setUploading(type);
     try {
       const name = filename || (file as File).name || `${type}.jpg`;
-      const response = await fetch(
-        `/api/upload?filename=${encodeURIComponent(name)}`,
-        { method: "POST", body: file }
-      );
+      const response = await fetch(`/api/upload?filename=${encodeURIComponent(name)}`, {
+        method: "POST", body: file,
+      });
       const blob = await response.json();
-
       if (!blob.url) {
         toast.error(blob.error || "Upload failed");
         return;
       }
-
       setUploads((prev) => ({ ...prev, [type]: blob.url }));
-
       const result = await saveAvatarUrl(type, blob.url);
       if (result.success) {
         toast.success(
-          type === "avatar"
-            ? "Avatar updated"
-            : type === "backgroundVideo"
-            ? "Background video updated"
-            : type === "background"
-            ? "Background image updated"
-            : `${type} updated`
+          type === "avatar" ? "Avatar updated"
+          : type === "backgroundVideo" ? "Background video updated"
+          : type === "background" ? "Background image updated"
+          : `${type} updated`
         );
-
         if (type === "background") setBackgroundEffect("image");
         else if (type === "backgroundVideo") setBackgroundEffect("video");
       } else {
@@ -321,12 +330,32 @@ export default function CustomizePage() {
     }
   }
 
+  async function uploadCover(file: File) {
+    setUploading("audio");
+    try {
+      const name = `cover-${Date.now()}.${file.name.split(".").pop() || "jpg"}`;
+      const response = await fetch(`/api/upload?filename=${encodeURIComponent(name)}`, {
+        method: "POST", body: file,
+      });
+      const blob = await response.json();
+      if (!blob.url) {
+        toast.error(blob.error || "Upload failed");
+        return;
+      }
+      setAudioCoverUrl(blob.url);
+      toast.success("Cover updated");
+    } catch {
+      toast.error("Upload failed");
+    } finally {
+      setUploading(null);
+    }
+  }
+
   async function saveCroppedAvatar() {
     if (!cropImage) {
       toast.error("No image selected");
       return;
     }
-
     let area = croppedAreaPixels;
     if (!area) {
       const img = new window.Image();
@@ -336,7 +365,6 @@ export default function CustomizePage() {
         img.onerror = () => resolve();
         img.src = cropImage;
       });
-
       const size = Math.min(img.width, img.height);
       area = {
         x: (img.width - size) / 2,
@@ -345,12 +373,9 @@ export default function CustomizePage() {
         height: size,
       };
     }
-
     try {
       const croppedBlob = await getCroppedImg(cropImage, area, rotation);
-      const file = new File([croppedBlob], `avatar-${Date.now()}.jpg`, {
-        type: "image/jpeg",
-      });
+      const file = new File([croppedBlob], `avatar-${Date.now()}.jpg`, { type: "image/jpeg" });
       await uploadFile(file, "avatar");
       setCropImage(null);
       setZoom(1);
@@ -370,9 +395,7 @@ export default function CustomizePage() {
     if (res.success) {
       toast.success("Avatar removed");
       setUploads((prev) => ({ ...prev, avatar: null }));
-    } else {
-      toast.error(res.error || "Failed to remove");
-    }
+    } else toast.error(res.error || "Failed to remove");
   }
 
   async function handleRemoveVideo() {
@@ -383,9 +406,7 @@ export default function CustomizePage() {
       toast.success("Background video removed");
       setUploads((prev) => ({ ...prev, backgroundVideo: null }));
       setBackgroundEffect("gradient");
-    } else {
-      toast.error(res.error || "Failed to remove");
-    }
+    } else toast.error(res.error || "Failed to remove");
   }
 
   async function handleRemoveBackgroundImage() {
@@ -396,9 +417,7 @@ export default function CustomizePage() {
       toast.success("Background image removed");
       setUploads((prev) => ({ ...prev, background: null }));
       setBackgroundEffect("gradient");
-    } else {
-      toast.error(res.error || "Failed to remove");
-    }
+    } else toast.error(res.error || "Failed to remove");
   }
 
   async function handleRemoveAudio() {
@@ -408,9 +427,7 @@ export default function CustomizePage() {
     if (res.success) {
       toast.success("Audio removed");
       setUploads((prev) => ({ ...prev, audio: null }));
-    } else {
-      toast.error(res.error || "Failed to remove");
-    }
+    } else toast.error(res.error || "Failed to remove");
   }
 
   async function handleAvatarStyleChange(next: AvatarStyle) {
@@ -430,32 +447,54 @@ export default function CustomizePage() {
 
   async function handleSaveCustomization() {
     setSavingCustomization(true);
-    const result = await saveCustomization({
-      bio,
-      font: profileFont,
-      accentColor,
-      textColor,
-      backgroundColor,
-      location,
-      profileOpacity,
-      profileBlur,
-      backgroundEffect,
-      usernameEffect,
-      monochromeIcons,
-      animatedTitle: animatedTitle !== "none",
-      animatedTitleStyle: animatedTitle,
-      swapBoxColors,
-      volumeControl,
-      mouseTrail,
-      welcomeEnabled,
-      welcomeText,
-      // ← NEW
-      tiltEnabled,
-      tiltStrength,
-    });
-    setSavingCustomization(false);
-    if (result.success) toast.success("Customization saved");
-    else toast.error(result.error || "Failed to save");
+
+    // guard against accidental navigation while the save is in flight
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+
+    try {
+      const result = await saveCustomization({
+        bio,
+        font: profileFont,
+        accentColor,
+        textColor,
+        backgroundColor,
+        location,
+        profileOpacity,
+        profileBlur,
+        backgroundEffect,
+        usernameEffect,
+        monochromeIcons,
+        animatedTitle: animatedTitle !== "none",
+        animatedTitleStyle: animatedTitle,
+        swapBoxColors,
+        volumeControl,
+        mouseTrail,
+        welcomeEnabled,
+        welcomeText,
+        tiltEnabled,
+        tiltStrength,
+        alignLeft,
+        spotifyStyleEnabled,
+        audioTitle,
+        audioArtist,
+        audioCoverUrl,
+        tracks: [],
+      });
+      if (result.success) {
+        toast.success("Customization saved");
+        // re-fetch so form reflects what's actually in the DB
+        loadProfile();
+      } else {
+        toast.error(result.error || "Failed to save");
+      }
+    } finally {
+      window.removeEventListener("beforeunload", handler);
+      setSavingCustomization(false);
+    }
   }
 
   function toggleGlassCard() {
@@ -481,6 +520,17 @@ export default function CustomizePage() {
         onChange={handleFileChange}
         className="hidden"
         accept="image/*,video/mp4,video/webm,audio/*"
+      />
+      <input
+        type="file"
+        ref={coverInputRef}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) uploadCover(f);
+          if (coverInputRef.current) coverInputRef.current.value = "";
+        }}
+        className="hidden"
+        accept="image/*"
       />
 
       <aside
@@ -582,42 +632,23 @@ export default function CustomizePage() {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleRemoveBackgroundImage}
-                disabled={removingBackground || !uploads.background}
-                className="flex items-center gap-2 h-9 px-4 rounded-lg border border-red-500/30 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/50 font-semibold text-xs transition disabled:opacity-30 disabled:cursor-not-allowed"
-              >
+              <button type="button" onClick={handleRemoveBackgroundImage} disabled={removingBackground || !uploads.background}
+                className="flex items-center gap-2 h-9 px-4 rounded-lg border border-red-500/30 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/50 font-semibold text-xs transition disabled:opacity-30 disabled:cursor-not-allowed">
                 <Trash2 className="h-3.5 w-3.5" />
                 {removingBackground ? "..." : "Remove BG Image"}
               </button>
-
-              <button
-                type="button"
-                onClick={handleRemoveVideo}
-                disabled={removingVideo || !uploads.backgroundVideo}
-                className="flex items-center gap-2 h-9 px-4 rounded-lg border border-red-500/30 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/50 font-semibold text-xs transition disabled:opacity-30 disabled:cursor-not-allowed"
-              >
+              <button type="button" onClick={handleRemoveVideo} disabled={removingVideo || !uploads.backgroundVideo}
+                className="flex items-center gap-2 h-9 px-4 rounded-lg border border-red-500/30 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/50 font-semibold text-xs transition disabled:opacity-30 disabled:cursor-not-allowed">
                 <Trash2 className="h-3.5 w-3.5" />
                 {removingVideo ? "..." : "Remove BG Video"}
               </button>
-
-              <button
-                type="button"
-                onClick={handleRemoveAudio}
-                disabled={removingAudio || !uploads.audio}
-                className="flex items-center gap-2 h-9 px-4 rounded-lg border border-red-500/30 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/50 font-semibold text-xs transition disabled:opacity-30 disabled:cursor-not-allowed"
-              >
+              <button type="button" onClick={handleRemoveAudio} disabled={removingAudio || !uploads.audio}
+                className="flex items-center gap-2 h-9 px-4 rounded-lg border border-red-500/30 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/50 font-semibold text-xs transition disabled:opacity-30 disabled:cursor-not-allowed">
                 <Trash2 className="h-3.5 w-3.5" />
                 {removingAudio ? "..." : "Remove Audio"}
               </button>
-
-              <button
-                type="button"
-                onClick={handleRemoveAvatar}
-                disabled={removingAvatar || !uploads.avatar}
-                className="flex items-center gap-2 h-9 px-4 rounded-lg border border-red-500/30 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/50 font-semibold text-xs transition disabled:opacity-30 disabled:cursor-not-allowed"
-              >
+              <button type="button" onClick={handleRemoveAvatar} disabled={removingAvatar || !uploads.avatar}
+                className="flex items-center gap-2 h-9 px-4 rounded-lg border border-red-500/30 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:border-red-500/50 font-semibold text-xs transition disabled:opacity-30 disabled:cursor-not-allowed">
                 <Trash2 className="h-3.5 w-3.5" />
                 {removingAvatar ? "..." : "Remove Avatar"}
               </button>
@@ -633,11 +664,9 @@ export default function CustomizePage() {
                     <AlignLeft className="h-3.5 w-3.5" />
                     Description
                   </label>
-                  <input
-                    type="text" value={bio} onChange={(e) => setBio(e.target.value)}
+                  <input type="text" value={bio} onChange={(e) => setBio(e.target.value)}
                     placeholder="this is my description" maxLength={160}
-                    className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm outline-none focus:border-white/30 placeholder:text-white/30"
-                  />
+                    className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm outline-none focus:border-white/30 placeholder:text-white/30" />
                   <p className="text-[10px] text-zinc-600 mt-1">{bio.length}/160</p>
                 </div>
 
@@ -646,19 +675,14 @@ export default function CustomizePage() {
                     <MapPin className="h-3.5 w-3.5" />
                     Location
                   </label>
-                  <input
-                    type="text" value={location} onChange={(e) => setLocation(e.target.value)}
+                  <input type="text" value={location} onChange={(e) => setLocation(e.target.value)}
                     placeholder="My Location" maxLength={50}
-                    className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm outline-none focus:border-white/30 placeholder:text-white/30"
-                  />
+                    className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm outline-none focus:border-white/30 placeholder:text-white/30" />
                 </div>
 
                 <div className="md:col-span-2">
-                  <button
-                    type="button"
-                    onClick={toggleGlassCard}
-                    className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left"
-                  >
+                  <button type="button" onClick={toggleGlassCard}
+                    className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left">
                     <div className="flex items-center gap-2">
                       <Droplets className="h-4 w-4 text-zinc-400" />
                       <span className="text-sm font-semibold text-white">See-through Card</span>
@@ -679,28 +703,18 @@ export default function CustomizePage() {
                       <span className="text-sm font-semibold text-white">Avatar Style</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleAvatarStyleChange("circle")}
-                        disabled={savingAvatarStyle}
+                      <button type="button" onClick={() => handleAvatarStyleChange("circle")} disabled={savingAvatarStyle}
                         className={`h-9 px-4 rounded-lg text-xs font-semibold border transition ${
-                          avatarStyle === "circle"
-                            ? "border-purple-500 bg-purple-500/10 text-white"
-                            : "border-white/10 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06]"
-                        } disabled:opacity-50`}
-                      >
+                          avatarStyle === "circle" ? "border-purple-500 bg-purple-500/10 text-white"
+                                                   : "border-white/10 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06]"
+                        } disabled:opacity-50`}>
                         Circle
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAvatarStyleChange("full")}
-                        disabled={savingAvatarStyle}
+                      <button type="button" onClick={() => handleAvatarStyleChange("full")} disabled={savingAvatarStyle}
                         className={`h-9 px-4 rounded-lg text-xs font-semibold border transition ${
-                          avatarStyle === "full"
-                            ? "border-purple-500 bg-purple-500/10 text-white"
-                            : "border-white/10 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06]"
-                        } disabled:opacity-50`}
-                      >
+                          avatarStyle === "full" ? "border-purple-500 bg-purple-500/10 text-white"
+                                                 : "border-white/10 bg-white/[0.03] text-zinc-400 hover:bg-white/[0.06]"
+                        } disabled:opacity-50`}>
                         Full Image
                       </button>
                     </div>
@@ -746,41 +760,35 @@ export default function CustomizePage() {
                   <Toggle label="Monochrome Icons" value={monochromeIcons} onChange={setMonochromeIcons} />
                   <Toggle label="Swap Box Colors" value={swapBoxColors} onChange={setSwapBoxColors} />
                   <Toggle label="Volume Control" value={volumeControl} onChange={setVolumeControl} />
+                  <Toggle label="3D Tilt on Hover" value={tiltEnabled} onChange={setTiltEnabled} />
+                  <Toggle label="Left-Aligned Layout" value={alignLeft} onChange={setAlignLeft} />
 
-                  {/* ← NEW: 3D Tilt toggle */}
-                  <Toggle
-                    label="3D Tilt on Hover"
-                    value={tiltEnabled}
-                    onChange={setTiltEnabled}
-                  />
-
-                  {/* ← NEW: Tilt strength slider, only shows when enabled */}
                   {tiltEnabled && (
                     <div className="md:col-span-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
                       <div className="flex items-center gap-2 mb-3">
                         <Box className="h-4 w-4 text-zinc-400" />
                         <span className="text-sm font-semibold text-white">Tilt Strength</span>
                       </div>
-                      <Slider
-                        label="Degrees"
-                        value={tiltStrength}
-                        min={4}
-                        max={20}
-                        step={1}
-                        suffix="°"
-                        onChange={setTiltStrength}
-                      />
+                      <Slider label="Degrees" value={tiltStrength} min={4} max={20} step={1} suffix="°" onChange={setTiltStrength} />
                       <p className="text-[10px] text-zinc-500 mt-2">
-                        How far the card tilts when you hover over it. 4° is subtle, 20° is dramatic.
+                        How far the card tilts when you hover over it.
                       </p>
                     </div>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => setAnimatedTitleModalOpen(true)}
-                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left"
-                  >
+                  <button type="button" onClick={() => setSpotifyModalOpen(true)}
+                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left md:col-span-2">
+                    <div className="flex items-center gap-2">
+                      <Music2 className="h-4 w-4 text-zinc-400" />
+                      <span className="text-sm font-semibold text-white">Spotify-Style Player</span>
+                    </div>
+                    <span className="text-xs text-zinc-400">
+                      {spotifyStyleEnabled ? "On" : "Off"}
+                    </span>
+                  </button>
+
+                  <button type="button" onClick={() => setAnimatedTitleModalOpen(true)}
+                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left">
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-zinc-400" />
                       <span className="text-sm font-semibold text-white">Animated Title</span>
@@ -790,23 +798,16 @@ export default function CustomizePage() {
                     </span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setMouseTrailModalOpen(true)}
-                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left"
-                  >
+                  <button type="button" onClick={() => setMouseTrailModalOpen(true)}
+                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left">
                     <div className="flex items-center gap-2">
                       <MousePointer2 className="h-4 w-4 text-zinc-400" />
                       <span className="text-sm font-semibold text-white">Mouse Trail</span>
                     </div>
-                    <span className="text-xs text-zinc-400">
-                      {currentTrail?.label || "None"}
-                    </span>
+                    <span className="text-xs text-zinc-400">{currentTrail?.label || "None"}</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
+                  <button type="button" onClick={() => {
                       if (!isPremium) {
                         toast.error("Welcome Screen is a Premium feature");
                         router.push("/dashboard/premium");
@@ -815,46 +816,28 @@ export default function CustomizePage() {
                       setWelcomeModalOpen(true);
                     }}
                     className={`flex items-center justify-between rounded-xl border px-4 py-3 transition text-left md:col-span-2 ${
-                      isPremium
-                        ? "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
-                        : "border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10"
-                    }`}
-                  >
+                      isPremium ? "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+                                : "border-yellow-500/30 bg-yellow-500/5 hover:bg-yellow-500/10"
+                    }`}>
                     <div className="flex items-center gap-2">
-                      <DoorOpen
-                        className={`h-4 w-4 ${
-                          isPremium ? "text-zinc-400" : "text-yellow-400/70"
-                        }`}
-                      />
-                      <span
-                        className={`text-sm font-semibold ${
-                          isPremium ? "text-white" : "text-yellow-100/80"
-                        }`}
-                      >
+                      <DoorOpen className={`h-4 w-4 ${isPremium ? "text-zinc-400" : "text-yellow-400/70"}`} />
+                      <span className={`text-sm font-semibold ${isPremium ? "text-white" : "text-yellow-100/80"}`}>
                         Welcome Screen
                       </span>
                       {!isPremium && (
                         <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/20 border border-yellow-500/40">
                           <Lock className="h-2.5 w-2.5 text-yellow-400" />
-                          <span className="text-[8px] font-bold text-yellow-400 uppercase tracking-wider">
-                            Premium
-                          </span>
+                          <span className="text-[8px] font-bold text-yellow-400 uppercase tracking-wider">Premium</span>
                         </span>
                       )}
                     </div>
                     <span className="text-xs text-zinc-400">
-                      {welcomeEnabled && welcomeText
-                        ? welcomeText.slice(0, 24) +
-                          (welcomeText.length > 24 ? "…" : "")
-                        : "None"}
+                      {welcomeEnabled && welcomeText ? welcomeText.slice(0, 24) + (welcomeText.length > 24 ? "…" : "") : "None"}
                     </span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setFontModalOpen(true)}
-                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left md:col-span-2"
-                  >
+                  <button type="button" onClick={() => setFontModalOpen(true)}
+                    className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left md:col-span-2">
                     <div className="flex items-center gap-2">
                       <Type className="h-4 w-4 text-zinc-400" />
                       <span className="text-sm font-semibold text-white">Font</span>
@@ -865,11 +848,8 @@ export default function CustomizePage() {
               </div>
 
               <div className="flex justify-end pt-2">
-                <button
-                  onClick={handleSaveCustomization}
-                  disabled={savingCustomization}
-                  className="flex items-center gap-2 h-11 px-5 rounded-xl bg-white text-black hover:bg-zinc-200 font-semibold transition disabled:opacity-50"
-                >
+                <button onClick={handleSaveCustomization} disabled={savingCustomization}
+                  className="flex items-center gap-2 h-11 px-5 rounded-xl bg-white text-black hover:bg-zinc-200 font-semibold transition disabled:opacity-50">
                   <Save className="h-4 w-4" />
                   {savingCustomization ? "Saving..." : "Save Changes"}
                 </button>
@@ -878,6 +858,80 @@ export default function CustomizePage() {
           </section>
         </div>
       </main>
+
+      {spotifyModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
+          onClick={() => setSpotifyModalOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg rounded-2xl border border-white/10 overflow-hidden"
+            style={{ background: "rgba(15,15,20,0.98)", boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <h2 className="text-lg font-bold">Spotify-Style Player</h2>
+              <button onClick={() => setSpotifyModalOpen(false)} className="text-zinc-500 hover:text-white transition">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <button type="button" onClick={() => setSpotifyStyleEnabled(!spotifyStyleEnabled)}
+                className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left">
+                <span className="text-sm font-semibold text-white">Enable Spotify-Style Player</span>
+                <span className={`relative h-6 w-11 rounded-full transition ${spotifyStyleEnabled ? "bg-purple-500" : "bg-white/10"}`}>
+                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${spotifyStyleEnabled ? "left-[22px]" : "left-0.5"}`} />
+                </span>
+              </button>
+
+              <p className="text-xs text-zinc-500">
+                A Spotify-look player appears below your card with cover art, title, artist, and controls. Requires an audio file uploaded above.
+              </p>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-2">Song Title</label>
+                <input type="text" value={audioTitle} onChange={(e) => setAudioTitle(e.target.value)}
+                  placeholder="e.g. Blinding Lights" maxLength={60}
+                  className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm outline-none focus:border-white/30 placeholder:text-white/30" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-2">Artist</label>
+                <input type="text" value={audioArtist} onChange={(e) => setAudioArtist(e.target.value)}
+                  placeholder="e.g. The Weeknd" maxLength={60}
+                  className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 text-sm outline-none focus:border-white/30 placeholder:text-white/30" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-400 mb-2">Cover Image</label>
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0 grid place-items-center">
+                    {audioCoverUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={audioCoverUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageIcon className="h-5 w-5 text-zinc-500" />
+                    )}
+                  </div>
+                  <button type="button" onClick={() => coverInputRef.current?.click()}
+                    className="h-10 px-4 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] text-xs font-semibold transition">
+                    {audioCoverUrl ? "Change" : "Upload"}
+                  </button>
+                  {audioCoverUrl && (
+                    <button type="button" onClick={() => setAudioCoverUrl("")}
+                      className="h-10 px-3 rounded-lg border border-red-500/30 bg-red-500/5 hover:bg-red-500/10 text-red-300 text-xs font-semibold transition">
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-white/10 flex justify-end">
+              <button onClick={() => setSpotifyModalOpen(false)}
+                className="h-11 px-5 rounded-xl bg-white text-black hover:bg-zinc-200 font-semibold transition">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {animatedTitleModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
@@ -963,8 +1017,7 @@ export default function CustomizePage() {
                 const locked = option.premium && !isPremium;
                 const Icon = option.Icon;
                 return (
-                  <button
-                    key={option.value}
+                  <button key={option.value}
                     onClick={() => {
                       if (locked) {
                         toast.error(`${option.label} is a Premium feature`);
@@ -979,8 +1032,7 @@ export default function CustomizePage() {
                         : selected
                         ? "border-purple-500 bg-purple-500/[0.07]"
                         : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
-                    }`}
-                  >
+                    }`}>
                     {selected && !locked && <Check className="absolute top-2 right-2 h-4 w-4 text-purple-400 z-10" />}
                     {locked && (
                       <span className="absolute top-2 right-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-yellow-500/20 border border-yellow-500/40">
@@ -1016,69 +1068,35 @@ export default function CustomizePage() {
       )}
 
       {welcomeModalOpen && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
-          onClick={() => setWelcomeModalOpen(false)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
+          onClick={() => setWelcomeModalOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()}
             className="w-full max-w-lg rounded-2xl border border-white/10 overflow-hidden"
-            style={{ background: "rgba(15,15,20,0.98)", boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}
-          >
+            style={{ background: "rgba(15,15,20,0.98)", boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
               <h2 className="text-lg font-bold">Welcome Screen</h2>
-              <button
-                onClick={() => setWelcomeModalOpen(false)}
-                className="text-zinc-500 hover:text-white transition"
-              >
+              <button onClick={() => setWelcomeModalOpen(false)} className="text-zinc-500 hover:text-white transition">
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <button
-                type="button"
-                onClick={() => setWelcomeEnabled(!welcomeEnabled)}
-                className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left"
-              >
-                <span className="text-sm font-semibold text-white">
-                  Enable Welcome Screen
-                </span>
-                <span
-                  className={`relative h-6 w-11 rounded-full transition ${
-                    welcomeEnabled ? "bg-purple-500" : "bg-white/10"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${
-                      welcomeEnabled ? "left-[22px]" : "left-0.5"
-                    }`}
-                  />
+              <button type="button" onClick={() => setWelcomeEnabled(!welcomeEnabled)}
+                className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 hover:bg-white/[0.06] transition text-left">
+                <span className="text-sm font-semibold text-white">Enable Welcome Screen</span>
+                <span className={`relative h-6 w-11 rounded-full transition ${welcomeEnabled ? "bg-purple-500" : "bg-white/10"}`}>
+                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${welcomeEnabled ? "left-[22px]" : "left-0.5"}`} />
                 </span>
               </button>
-
               <div>
-                <label className="block text-xs font-semibold text-zinc-400 mb-2">
-                  Message
-                </label>
-                <textarea
-                  value={welcomeText}
-                  onChange={(e) => setWelcomeText(e.target.value)}
-                  placeholder="Welcome to my page. Click to continue."
-                  maxLength={160}
-                  rows={4}
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm outline-none focus:border-white/30 placeholder:text-white/30 resize-none"
-                />
-                <p className="text-[10px] text-zinc-600 mt-1">
-                  {welcomeText.length}/160
-                </p>
+                <label className="block text-xs font-semibold text-zinc-400 mb-2">Message</label>
+                <textarea value={welcomeText} onChange={(e) => setWelcomeText(e.target.value)}
+                  placeholder="Welcome to my page. Click to continue." maxLength={160} rows={4}
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm outline-none focus:border-white/30 placeholder:text-white/30 resize-none" />
+                <p className="text-[10px] text-zinc-600 mt-1">{welcomeText.length}/160</p>
               </div>
-
               <div className="rounded-xl border border-white/5 bg-black/40 p-4 text-center">
-                <p
-                  className="text-lg font-bold"
-                  style={{ textShadow: `0 0 20px ${accentColor}66` }}
-                >
+                <p className="text-lg font-bold" style={{ textShadow: `0 0 20px ${accentColor}66` }}>
                   {welcomeText || "Your welcome message"}
                 </p>
                 <p className="mt-3 text-[10px] uppercase tracking-[0.25em] text-white/40 font-semibold">
@@ -1087,10 +1105,8 @@ export default function CustomizePage() {
               </div>
             </div>
             <div className="px-6 py-4 border-t border-white/10 flex justify-end">
-              <button
-                onClick={() => setWelcomeModalOpen(false)}
-                className="h-11 px-5 rounded-xl bg-white text-black hover:bg-zinc-200 font-semibold transition"
-              >
+              <button onClick={() => setWelcomeModalOpen(false)}
+                className="h-11 px-5 rounded-xl bg-white text-black hover:bg-zinc-200 font-semibold transition">
                 Done
               </button>
             </div>
@@ -1115,14 +1131,11 @@ export default function CustomizePage() {
               {FONTS.map((font) => {
                 const selected = profileFont === font.value;
                 return (
-                  <button
-                    key={font.value}
-                    onClick={() => setProfileFont(font.value)}
+                  <button key={font.value} onClick={() => setProfileFont(font.value)}
                     className={`relative flex flex-col items-start gap-3 p-5 rounded-xl border text-left transition ${
                       selected ? "border-purple-500 bg-purple-500/10"
                               : "border-white/10 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20"
-                    }`}
-                  >
+                    }`}>
                     {selected && <Check className="absolute top-3 right-3 h-4 w-4 text-purple-400" />}
                     <span className="text-xs uppercase tracking-wider text-zinc-500 font-semibold">{font.label}</span>
                     <div className={`py-3 min-h-[60px] flex items-center w-full overflow-hidden ${font.class}`}>
@@ -1159,28 +1172,11 @@ export default function CustomizePage() {
               </button>
             </div>
             <div className="relative w-full" style={{ height: 340, background: "#000" }}>
-              <Cropper
-                image={cropImage}
-                crop={crop}
-                zoom={zoom}
-                rotation={rotation}
-                aspect={1}
-                cropShape="round"
-                showGrid={false}
-                objectFit="contain"
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onRotationChange={setRotation}
+              <Cropper image={cropImage} crop={crop} zoom={zoom} rotation={rotation}
+                aspect={1} cropShape="round" showGrid={false} objectFit="contain"
+                onCropChange={setCrop} onZoomChange={setZoom} onRotationChange={setRotation}
                 onCropComplete={onCropComplete}
-                style={{
-                  containerStyle: {
-                    width: "100%",
-                    height: "100%",
-                    background: "#000",
-                    willChange: "transform",
-                  },
-                }}
-              />
+                style={{ containerStyle: { width: "100%", height: "100%", background: "#000", willChange: "transform" } }} />
             </div>
             <div className="px-6 py-5 space-y-4">
               <p className="text-xs text-zinc-500 text-center">Drag to move. Scroll to zoom.</p>

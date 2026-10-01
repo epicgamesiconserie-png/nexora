@@ -147,7 +147,7 @@ export default function LinksPage() {
   }
 
   async function deleteSocial(id: string) {
-    if (!confirm("Delete this link?")) return;
+    // no confirm — delete immediately
     const r = await fetch(`/api/socials?id=${id}`, { method: "DELETE" });
     if (!r.ok) return toast.error("Failed to delete");
     setSocials((prev) => prev.filter((s) => s.id !== id));

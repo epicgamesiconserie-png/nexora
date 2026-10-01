@@ -11,7 +11,6 @@ export async function saveAvatarUrl(
 ): Promise<{ success: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { success: false, error: "Not logged in" };
-
   try {
     if (type === "avatar") {
       await prisma.profile.upsert({
@@ -23,21 +22,13 @@ export async function saveAvatarUrl(
       await prisma.profile.upsert({
         where: { userId: session.userId },
         update: { backgroundUrl: url, backgroundType: "image" },
-        create: {
-          userId: session.userId,
-          backgroundUrl: url,
-          backgroundType: "image",
-        },
+        create: { userId: session.userId, backgroundUrl: url, backgroundType: "image" },
       });
     } else if (type === "backgroundVideo") {
       await prisma.profile.upsert({
         where: { userId: session.userId },
         update: { backgroundVideoUrl: url, backgroundType: "video" },
-        create: {
-          userId: session.userId,
-          backgroundVideoUrl: url,
-          backgroundType: "video",
-        },
+        create: { userId: session.userId, backgroundVideoUrl: url, backgroundType: "video" },
       });
     } else if (type === "audio") {
       await prisma.profile.upsert({
@@ -46,9 +37,7 @@ export async function saveAvatarUrl(
         create: { userId: session.userId, audioUrl: url },
       });
     }
-
     revalidatePath("/dashboard/customize");
-    revalidatePath("/dashboard/mypage");
     revalidatePath("/u/[username]", "page");
     return { success: true };
   } catch (err) {
@@ -67,7 +56,6 @@ export async function removeAvatar(): Promise<{ success: boolean; error?: string
       create: { userId: session.userId },
     });
     revalidatePath("/dashboard/customize");
-    revalidatePath("/dashboard/mypage");
     revalidatePath("/u/[username]", "page");
     return { success: true };
   } catch (err) {
@@ -86,7 +74,6 @@ export async function removeBackgroundImage(): Promise<{ success: boolean; error
       create: { userId: session.userId },
     });
     revalidatePath("/dashboard/customize");
-    revalidatePath("/dashboard/mypage");
     revalidatePath("/u/[username]", "page");
     return { success: true };
   } catch (err) {
@@ -105,7 +92,6 @@ export async function removeBackgroundVideo(): Promise<{ success: boolean; error
       create: { userId: session.userId },
     });
     revalidatePath("/dashboard/customize");
-    revalidatePath("/dashboard/mypage");
     revalidatePath("/u/[username]", "page");
     return { success: true };
   } catch (err) {
@@ -120,11 +106,10 @@ export async function removeAudio(): Promise<{ success: boolean; error?: string 
   try {
     await prisma.profile.upsert({
       where: { userId: session.userId },
-      update: { audioUrl: null },
+      update: { audioUrl: null, tracks: [] as unknown as object },
       create: { userId: session.userId },
     });
     revalidatePath("/dashboard/customize");
-    revalidatePath("/dashboard/mypage");
     revalidatePath("/u/[username]", "page");
     return { success: true };
   } catch (err) {
@@ -132,6 +117,13 @@ export async function removeAudio(): Promise<{ success: boolean; error?: string 
     return { success: false, error: "Database error" };
   }
 }
+
+export type TrackData = {
+  url: string;
+  title?: string;
+  artist?: string;
+  coverUrl?: string;
+};
 
 export type CustomizationData = {
   bio: string;
@@ -154,6 +146,12 @@ export type CustomizationData = {
   welcomeText: string;
   tiltEnabled: boolean;
   tiltStrength: number;
+  alignLeft: boolean;
+  spotifyStyleEnabled: boolean;
+  audioTitle: string;
+  audioArtist: string;
+  audioCoverUrl: string;
+  tracks: TrackData[];
 };
 
 export async function saveCustomization(
@@ -163,7 +161,6 @@ export async function saveCustomization(
   if (!session) return { success: false, error: "Not logged in" };
 
   try {
-    // Welcome screen is premium-only. Strip it if the user isn't premium.
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
       select: { isPremium: true },
@@ -173,57 +170,42 @@ export async function saveCustomization(
     const welcomeEnabled = isPremium ? !!data.welcomeEnabled : false;
     const welcomeText = isPremium ? (data.welcomeText || null) : null;
 
+    const payload = {
+      bio: data.bio || null,
+      font: data.font,
+      accentColor: data.accentColor,
+      textColor: data.textColor,
+      backgroundColor: data.backgroundColor,
+      location: data.location || null,
+      profileOpacity: data.profileOpacity,
+      blur: data.profileBlur,
+      effect: data.usernameEffect,
+      monochromeIcons: data.monochromeIcons,
+      animatedTitle: data.animatedTitle,
+      animatedTitleStyle: data.animatedTitleStyle,
+      swapBoxColors: data.swapBoxColors,
+      volumeControl: data.volumeControl,
+      mouseTrail: data.mouseTrail,
+      welcomeEnabled,
+      welcomeText,
+      tiltEnabled: Boolean(data.tiltEnabled),
+      tiltStrength: Number(data.tiltStrength) || 12,
+      alignLeft: Boolean(data.alignLeft),
+      spotifyStyleEnabled: Boolean(data.spotifyStyleEnabled),
+      audioTitle: data.audioTitle || null,
+      audioArtist: data.audioArtist || null,
+      audioCoverUrl: data.audioCoverUrl || null,
+      tracks: (Array.isArray(data.tracks) ? data.tracks : []) as unknown as object,
+    };
+
     await prisma.profile.upsert({
       where: { userId: session.userId },
-      update: {
-        bio: data.bio || null,
-        font: data.font,
-        accentColor: data.accentColor,
-        textColor: data.textColor,
-        backgroundColor: data.backgroundColor,
-        location: data.location || null,
-        profileOpacity: data.profileOpacity,
-        blur: data.profileBlur,
-        effect: data.usernameEffect,
-        monochromeIcons: data.monochromeIcons,
-        animatedTitle: data.animatedTitle,
-        animatedTitleStyle: data.animatedTitleStyle,
-        swapBoxColors: data.swapBoxColors,
-        volumeControl: data.volumeControl,
-        mouseTrail: data.mouseTrail,
-        welcomeEnabled,
-        welcomeText,
-        tiltEnabled: data.tiltEnabled,
-        tiltStrength: data.tiltStrength,
-      },
-      create: {
-        userId: session.userId,
-        bio: data.bio || null,
-        font: data.font,
-        accentColor: data.accentColor,
-        textColor: data.textColor,
-        backgroundColor: data.backgroundColor,
-        location: data.location || null,
-        profileOpacity: data.profileOpacity,
-        blur: data.profileBlur,
-        effect: data.usernameEffect,
-        monochromeIcons: data.monochromeIcons,
-        animatedTitle: data.animatedTitle,
-        animatedTitleStyle: data.animatedTitleStyle,
-        swapBoxColors: data.swapBoxColors,
-        volumeControl: data.volumeControl,
-        mouseTrail: data.mouseTrail,
-        welcomeEnabled,
-        welcomeText,
-        tiltEnabled: data.tiltEnabled,
-        tiltStrength: data.tiltStrength,
-      },
+      update: payload,
+      create: { userId: session.userId, ...payload },
     });
 
     revalidatePath("/dashboard/customize");
-    revalidatePath("/dashboard/mypage");
     revalidatePath("/u/[username]", "page");
-
     return { success: true };
   } catch (err) {
     console.error("saveCustomization error:", err);
@@ -231,37 +213,25 @@ export async function saveCustomization(
   }
 }
 
-// ============================================================
-// BADGES
-// ============================================================
-
 export async function claimBadge(
   badgeId: string
 ): Promise<{ success: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { success: false, error: "Not logged in" };
-
   try {
     const profile = await prisma.profile.findUnique({
       where: { userId: session.userId },
       select: { badges: true },
     });
-
     const current = profile?.badges || [];
-    if (current.includes(badgeId)) {
-      return { success: false, error: "Already claimed" };
-    }
-
+    if (current.includes(badgeId)) return { success: false, error: "Already claimed" };
     await prisma.profile.upsert({
       where: { userId: session.userId },
       update: { badges: [...current, badgeId] },
       create: { userId: session.userId, badges: [badgeId] },
     });
-
     revalidatePath("/dashboard/badges");
-    revalidatePath("/dashboard/mypage");
     revalidatePath("/u/[username]", "page");
-
     return { success: true };
   } catch (err) {
     console.error("claimBadge error:", err);
@@ -274,35 +244,25 @@ export async function unclaimBadge(
 ): Promise<{ success: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { success: false, error: "Not logged in" };
-
   try {
     const profile = await prisma.profile.findUnique({
       where: { userId: session.userId },
       select: { badges: true },
     });
-
     const current = profile?.badges || [];
     const updated = current.filter((b) => b !== badgeId);
-
     await prisma.profile.update({
       where: { userId: session.userId },
       data: { badges: updated },
     });
-
     revalidatePath("/dashboard/badges");
-    revalidatePath("/dashboard/mypage");
     revalidatePath("/u/[username]", "page");
-
     return { success: true };
   } catch (err) {
     console.error("unclaimBadge error:", err);
     return { success: false, error: "Database error" };
   }
 }
-
-// ============================================================
-// BADGE UNLOCK SYNC
-// ============================================================
 
 export async function syncUnlockedBadges(): Promise<{
   success: boolean;
@@ -311,7 +271,6 @@ export async function syncUnlockedBadges(): Promise<{
 }> {
   const session = await getSession();
   if (!session) return { success: false, error: "Not logged in" };
-
   try {
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
@@ -332,9 +291,7 @@ export async function syncUnlockedBadges(): Promise<{
         _count: { select: { socials: true, links: true } },
       },
     });
-
     if (!user) return { success: false, error: "User not found" };
-
     const earned = computeEarnedBadges({
       avatarUrl: user.profile?.avatarUrl,
       bio: user.profile?.bio,
@@ -347,14 +304,11 @@ export async function syncUnlockedBadges(): Promise<{
       isAdmin: user.role === "admin",
       isPremium: user.isPremium,
     });
-
     const stored = user.profile?.unlockedBadges ?? [];
     const merged = mergeUnlocked(stored, earned);
-
     const changed =
       merged.length !== stored.length ||
       merged.some((id, i) => stored[i] !== id);
-
     if (changed) {
       await prisma.profile.upsert({
         where: { userId: session.userId },
@@ -362,10 +316,8 @@ export async function syncUnlockedBadges(): Promise<{
         create: { userId: session.userId, unlockedBadges: merged },
       });
       revalidatePath("/dashboard/badges");
-      revalidatePath("/dashboard/mypage");
       revalidatePath("/u/[username]", "page");
     }
-
     return { success: true, unlocked: merged };
   } catch (err) {
     console.error("syncUnlockedBadges error:", err);
@@ -373,29 +325,21 @@ export async function syncUnlockedBadges(): Promise<{
   }
 }
 
-// ============================================================
-// AVATAR STYLE
-// ============================================================
-
 export async function saveAvatarStyle(
   style: "circle" | "full"
 ): Promise<{ success: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { success: false, error: "Not logged in" };
-
   if (style !== "circle" && style !== "full") {
     return { success: false, error: "Invalid style" };
   }
-
   try {
     await prisma.profile.upsert({
       where: { userId: session.userId },
       update: { avatarStyle: style },
       create: { userId: session.userId, avatarStyle: style },
     });
-
     revalidatePath("/dashboard/customize");
-    revalidatePath("/dashboard/mypage");
     revalidatePath("/u/[username]", "page");
     return { success: true };
   } catch (err) {

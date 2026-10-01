@@ -57,6 +57,8 @@ model Profile {
   audioUrl           String?  @map("audio_url")
   audioTitle         String?  @map("audio_title")
   audioArtist        String?  @map("audio_artist")
+  audioCoverUrl      String?  @map("audio_cover_url")
+  tracks             Json?    @default("[]")
   cursorUrl          String?  @map("cursor_url")
   location           String?  @map("location")
   profileOpacity     Int      @default(100) @map("profile_opacity")
@@ -70,6 +72,8 @@ model Profile {
   welcomeText        String?  @map("welcome_text")
   tiltEnabled        Boolean  @default(false) @map("tilt_enabled")
   tiltStrength       Int      @default(12)    @map("tilt_strength")
+  alignLeft          Boolean  @default(false) @map("align_left")
+  spotifyStyleEnabled Boolean @default(false) @map("spotify_style_enabled")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 

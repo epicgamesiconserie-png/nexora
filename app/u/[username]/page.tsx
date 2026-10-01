@@ -8,6 +8,7 @@ import { BadgeItem } from "@/components/BadgeItem";
 import { ViewCounter } from "@/components/ViewCounter";
 import { MouseTrail, type MouseTrailStyle } from "@/components/MouseTrail";
 import { MusicPlayer } from "@/components/MusicPlayer";
+import { SpotifyStylePlayer } from "@/components/SpotifyStylePlayer";
 import { WelcomeGate } from "@/components/WelcomeGate";
 import { TiltCard } from "@/components/TiltCard";
 import { BADGES } from "@/lib/badges";
@@ -20,6 +21,10 @@ import {
   SiRoblox, SiGithub, SiCashapp, SiVenmo, SiPlaystation,
   SiOnlyfans, SiKick, SiLitecoin, SiSolana, SiApplemusic,
 } from "react-icons/si";
+
+// force this page to always render fresh — never from cache
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const PLATFORMS: Record<string, { name: string; color: string; Icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }> }> = {
   youtube:     { name: "YouTube",     color: "#FF0000", Icon: FaYoutube },
@@ -148,58 +153,91 @@ export default async function PublicProfile({
     !!profile.welcomeText.trim();
 
   const hasAudio = !!profile?.audioUrl;
+  const alignLeft = profile?.alignLeft === true;
+  const useSpotifyStyle = profile?.spotifyStyleEnabled === true;
 
   const tiltOn = profile?.tiltEnabled === true;
   const tiltStrength = profile?.tiltStrength ?? 12;
 
+  let tracks: { url: string; title?: string; artist?: string; coverUrl?: string }[] = [];
+  try {
+    const raw = profile?.tracks;
+    if (Array.isArray(raw)) tracks = raw as typeof tracks;
+  } catch {}
+
+  const hasAnyAudio = hasAudio || tracks.length > 0;
+  const showSpotifyPlayer = useSpotifyStyle && !showWelcome && hasAnyAudio;
+
+  const avatarBlock = profile?.avatarUrl ? (
+    avatarStyle === "circle" ? (
+      <div
+        className={`rounded-full overflow-hidden border-2 flex-shrink-0 ${alignLeft ? "h-20 w-20" : "h-28 w-28"}`}
+        style={{ borderColor: accent, boxShadow: `0 0 40px -10px ${accent}` }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+      </div>
+    ) : (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img
+        src={profile.avatarUrl}
+        alt=""
+        className="flex-shrink-0 max-h-40 w-auto max-w-full object-contain"
+        style={{ filter: `drop-shadow(0 0 20px ${accent}55)` }}
+      />
+    )
+  ) : null;
+
+  const textBlock = (
+    <>
+      <AnimatedTitle
+        text={`@${user.username}`}
+        style={(profile?.animatedTitleStyle as AnimatedTitleStyle) || "none"}
+        className={`${alignLeft ? "text-2xl md:text-3xl" : "text-3xl"} font-bold tracking-tight`}
+        style2={{ color: text }}
+      />
+      {profile?.displayName && (
+        <p className="mt-2 text-base" style={{ color: text, opacity: 0.7 }}>
+          {profile.displayName}
+        </p>
+      )}
+      {profile?.bio && (
+        <p className="mt-3 text-base max-w-md" style={{ color: text, opacity: 0.85 }}>
+          {profile.bio}
+        </p>
+      )}
+      {profile?.location && (
+        <p className={`mt-3 text-sm flex items-center gap-1 ${alignLeft ? "" : "justify-center"}`} style={{ color: text, opacity: 0.6 }}>
+          <MapPin className="h-3.5 w-3.5" />
+          {profile.location}
+        </p>
+      )}
+    </>
+  );
+
   const cardInner = (
     <>
-      <div className="px-8 pt-12 pb-8 flex flex-col items-center text-center">
-        {profile?.avatarUrl && avatarStyle === "circle" && (
-          <div className="h-28 w-28 rounded-full overflow-hidden border-2" style={{ borderColor: accent, boxShadow: `0 0 40px -10px ${accent}` }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
-          </div>
+      <div className={`px-8 pt-12 pb-8 ${alignLeft ? "flex items-start gap-6 text-left" : "flex flex-col items-center text-center"}`}>
+        {alignLeft ? (
+          <>
+            {avatarBlock}
+            <div className="flex-1 min-w-0 flex flex-col items-start">
+              {textBlock}
+            </div>
+          </>
+        ) : (
+          <>
+            {avatarBlock}
+            <div className="flex flex-col items-center text-center mt-6 w-full">
+              {textBlock}
+            </div>
+          </>
         )}
+      </div>
 
-        {profile?.avatarUrl && avatarStyle === "full" && (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={profile.avatarUrl}
-            alt=""
-            className="max-h-40 w-auto max-w-full object-contain"
-            style={{ filter: `drop-shadow(0 0 20px ${accent}55)` }}
-          />
-        )}
-
-        <AnimatedTitle
-          text={`@${user.username}`}
-          style={(profile?.animatedTitleStyle as AnimatedTitleStyle) || "none"}
-          className={`${profile?.avatarUrl ? "mt-6" : "mt-0"} text-3xl font-bold tracking-tight`}
-          style2={{ color: text }}
-        />
-
-        {profile?.displayName && (
-          <p className="mt-2 text-base" style={{ color: text, opacity: 0.7 }}>
-            {profile.displayName}
-          </p>
-        )}
-
-        {profile?.bio && (
-          <p className="mt-3 text-base max-w-md" style={{ color: text, opacity: 0.85 }}>
-            {profile.bio}
-          </p>
-        )}
-
-        {profile?.location && (
-          <p className="mt-3 text-sm flex items-center gap-1" style={{ color: text, opacity: 0.6 }}>
-            <MapPin className="h-3.5 w-3.5" />
-            {profile.location}
-          </p>
-        )}
-
+      <div className={`px-8 ${alignLeft ? "pb-8 flex flex-col items-start text-left" : "pb-8 flex flex-col items-center text-center"}`}>
         {profile?.badges && profile.badges.length > 0 && (
-          <div className="mt-4 flex flex-wrap justify-center gap-3">
+          <div className={`flex flex-wrap ${alignLeft ? "justify-start" : "justify-center"} gap-3 ${alignLeft ? "" : "mt-4"}`}>
             {profile.badges.map((badgeId: string) => {
               const badge = BADGES.find((b) => b.id === badgeId);
               if (!badge) return null;
@@ -218,7 +256,7 @@ export default async function PublicProfile({
         )}
 
         {user.socials.length > 0 && (
-          <div className="mt-12 flex flex-wrap justify-center gap-4">
+          <div className={`mt-12 flex flex-wrap ${alignLeft ? "justify-start" : "justify-center"} gap-4`}>
             {user.socials.map((s) => {
               const platform = PLATFORMS[s.platform];
               if (!platform) return null;
@@ -250,7 +288,7 @@ export default async function PublicProfile({
                 href={l.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full py-4 text-base font-semibold text-center border transition-transform hover:scale-[1.01]"
+                className={`block w-full py-4 text-base font-semibold border transition-transform hover:scale-[1.01] ${alignLeft ? "text-left px-6" : "text-center"}`}
                 style={{
                   borderRadius: profile?.borderRadius ?? 16,
                   borderColor: `${accent}66`,
@@ -263,25 +301,48 @@ export default async function PublicProfile({
             ))}
           </div>
         )}
-
-        {music?.url && music.showPlayer && (
-          <div className="mt-8 flex items-center gap-3 rounded-full border border-white/10 bg-black/30 px-4 py-3 backdrop-blur-md">
-            <Music2 className="h-5 w-5" style={{ color: accent }} />
-            <div className="text-left">
-              <div className="text-sm font-medium">{music.title || "Now playing"}</div>
-              <div className="text-xs opacity-60">{music.artist || "Unknown"}</div>
-            </div>
-          </div>
-        )}
       </div>
 
       {profile?.showViewCount && (
-        <div className="px-8 pb-5 flex items-center gap-2 text-xs" style={{ color: text, opacity: 0.5 }}>
+        <div className={`px-8 pb-5 flex items-center gap-2 text-xs ${alignLeft ? "justify-start" : "justify-center"}`} style={{ color: text, opacity: 0.5 }}>
           <Eye className="h-3.5 w-3.5" />
           {profile.views.toLocaleString()} views
         </div>
       )}
     </>
+  );
+
+  const tiltableContent = (
+    <div className="w-full flex flex-col items-center gap-4">
+      <div
+        className="w-full max-w-2xl rounded-3xl border overflow-hidden"
+        style={{
+          background: cardBackground,
+          borderColor: cardBorder,
+          backdropFilter: glassMode ? "none" : `blur(${blur}px)`,
+          WebkitBackdropFilter: glassMode ? "none" : `blur(${blur}px)`,
+          boxShadow: cardShadow,
+          color: text,
+        }}
+      >
+        {cardInner}
+      </div>
+
+      {showSpotifyPlayer && (
+        <div className="w-full max-w-2xl">
+          <SpotifyStylePlayer
+            tracks={tracks}
+            fallbackSrc={profile?.audioUrl}
+            fallbackTitle={profile?.audioTitle}
+            fallbackArtist={profile?.audioArtist}
+            fallbackCover={profile?.audioCoverUrl}
+            accent={accent}
+            volume={music?.volume ?? 60}
+            loop={music?.loop ?? true}
+          />
+        </div>
+      )}
+    </div>
   );
 
   return (
@@ -295,7 +356,7 @@ export default async function PublicProfile({
           loop={music?.loop ?? true}
         />
       ) : (
-        hasAudio && (
+        hasAudio && !useSpotifyStyle && (
           <MusicPlayer
             src={profile!.audioUrl!}
             accent={accent}
@@ -330,37 +391,17 @@ export default async function PublicProfile({
         />
       )}
 
-      <div className="relative min-h-screen flex items-center justify-center px-4 py-14" style={{ zIndex: 10 }}>
+      <div className="relative min-h-screen flex flex-col items-center justify-center px-4 py-14" style={{ zIndex: 10 }}>
         {tiltOn ? (
           <TiltCard
-            className="w-full max-w-2xl rounded-3xl border overflow-hidden"
-            style={{
-              background: cardBackground,
-              borderColor: cardBorder,
-              backdropFilter: glassMode ? "none" : `blur(${blur}px)`,
-              WebkitBackdropFilter: glassMode ? "none" : `blur(${blur}px)`,
-              boxShadow: cardShadow,
-              color: text,
-            }}
+            className="w-full max-w-2xl"
             maxTilt={tiltStrength}
             scale={1.02}
           >
-            {cardInner}
+            {tiltableContent}
           </TiltCard>
         ) : (
-          <div
-            className="w-full max-w-2xl rounded-3xl border overflow-hidden"
-            style={{
-              background: cardBackground,
-              borderColor: cardBorder,
-              backdropFilter: glassMode ? "none" : `blur(${blur}px)`,
-              WebkitBackdropFilter: glassMode ? "none" : `blur(${blur}px)`,
-              boxShadow: cardShadow,
-              color: text,
-            }}
-          >
-            {cardInner}
-          </div>
+          tiltableContent
         )}
       </div>
     </main>

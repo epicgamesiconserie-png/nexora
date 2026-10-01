@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Music2, Eye, MapPin } from "lucide-react";
 import type { Metadata } from "next";
 import { AnimatedTitle, type AnimatedTitleStyle } from "@/components/AnimatedTitle";
-import { BadgeIcon } from "@/components/BadgeIcon";
+import { BadgeItem } from "@/components/BadgeItem";
 import { ViewCounter } from "@/components/ViewCounter";
 import { MouseTrail, type MouseTrailStyle } from "@/components/MouseTrail";
 import { MusicPlayer } from "@/components/MusicPlayer";
@@ -149,7 +149,6 @@ export default async function PublicProfile({
 
   const hasAudio = !!profile?.audioUrl;
 
-  // 3D Tilt — only if the user enabled it in customize
   const tiltOn = profile?.tiltEnabled === true;
   const tiltStrength = profile?.tiltStrength ?? 12;
 
@@ -200,20 +199,19 @@ export default async function PublicProfile({
         )}
 
         {profile?.badges && profile.badges.length > 0 && (
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
             {profile.badges.map((badgeId: string) => {
               const badge = BADGES.find((b) => b.id === badgeId);
               if (!badge) return null;
-              const badgeColor = monochrome ? text : badge.color;
               return (
-                <div
+                <BadgeItem
                   key={badgeId}
-                  title={badge.name}
-                  className="grid place-items-center transition-transform hover:scale-110"
-                  style={{ filter: `drop-shadow(0 0 5px ${badgeColor}99)` }}
-                >
-                  <BadgeIcon icon={badge.icon} className="h-6 w-6" color={badgeColor} strokeWidth={2} />
-                </div>
+                  icon={badge.icon}
+                  name={badge.name}
+                  color={badge.color}
+                  monochrome={monochrome}
+                  textColor={text}
+                />
               );
             })}
           </div>

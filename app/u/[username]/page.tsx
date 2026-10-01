@@ -146,15 +146,27 @@ export default async function PublicProfile({
     !!profile?.welcomeText &&
     !!profile.welcomeText.trim();
 
+  const hasAudio = !!profile?.audioUrl;
+
   return (
     <main className={`relative min-h-screen ${fontClass}`} style={{ ...backgroundStyle, color: text }}>
-      {showWelcome && (
+      {showWelcome ? (
         <WelcomeGate
           text={profile!.welcomeText!}
           accent={accent}
-          avatarUrl={profile?.avatarUrl}
-          username={user.username}
+          audioUrl={hasAudio ? profile!.audioUrl : null}
+          volume={music?.volume ?? 60}
+          loop={music?.loop ?? true}
         />
+      ) : (
+        hasAudio && (
+          <MusicPlayer
+            src={profile!.audioUrl!}
+            accent={accent}
+            volume={music?.volume ?? 60}
+            loop={music?.loop ?? true}
+          />
+        )
       )}
 
       {profile?.showViewCount && <ViewCounter userId={user.id} />}
@@ -164,8 +176,6 @@ export default async function PublicProfile({
         style={(profile?.mouseTrail as MouseTrailStyle) || "none"}
         color={profile?.accentColor}
       />
-
-      {profile?.audioUrl && <MusicPlayer src={profile.audioUrl} accent={accent} />}
 
       {isVideoBg && (
         <video autoPlay muted loop playsInline className="fixed inset-0 w-full h-full object-cover" style={{ zIndex: 0 }}>
